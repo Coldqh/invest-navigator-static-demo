@@ -116,8 +116,8 @@ p {
     border: 1px solid rgba(148, 163, 184, 0.16);
     border-radius: 26px;
     background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 18rem),
-        rgba(15, 23, 42, 0.66);
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 18rem),
+            rgba(15, 23, 42, 0.66);
     box-shadow: 0 18px 70px rgba(0, 0, 0, 0.18);
 }
 
@@ -150,6 +150,12 @@ p {
 .primary-button {
     color: #020617;
     background: #38bdf8;
+}
+
+.primary-button:disabled,
+.ghost-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.62;
 }
 
 .ghost-button {
@@ -248,6 +254,237 @@ p {
     font-weight: 850;
 }
 
+.assets-page {
+    gap: 24px;
+}
+
+.assets-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.assets-overview-card {
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 20px;
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 12rem),
+            rgba(15, 23, 42, 0.56);
+}
+
+.assets-overview-card span {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.assets-overview-card strong {
+    color: #f8fafc;
+    font-size: 28px;
+    letter-spacing: -0.05em;
+}
+
+.assets-control-panel {
+    padding: 18px;
+}
+
+.assets-controls {
+    display: grid;
+    grid-template-columns: 1.4fr repeat(4, minmax(150px, 0.8fr));
+    gap: 12px;
+}
+
+.assets-control {
+    display: grid;
+    gap: 8px;
+}
+
+.assets-control span {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.assets-control input,
+.assets-control select {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+    padding: 0 14px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 14px;
+    color: #e5edf7;
+    background: rgba(15, 23, 42, 0.72);
+    outline: none;
+    font-weight: 800;
+}
+
+.assets-control input:focus,
+.assets-control select:focus {
+    border-color: rgba(56, 189, 248, 0.58);
+}
+
+.asset-grid-rich {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.asset-card-rich {
+    position: relative;
+    overflow: hidden;
+    gap: 18px;
+    min-height: 320px;
+    padding: 22px;
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 15rem),
+            radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.08), transparent 14rem),
+            rgba(15, 23, 42, 0.62);
+}
+
+.asset-card-rich::before {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    content: "";
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 42%);
+}
+
+.asset-card-top,
+.asset-card-title-row,
+.asset-card-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.asset-card-top {
+    position: relative;
+    z-index: 1;
+}
+
+.asset-card-title-row {
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.asset-card-title-row strong {
+    font-size: 34px;
+    line-height: 1;
+    letter-spacing: -0.06em;
+}
+
+.source-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+}
+
+.source-moex {
+    color: #bfdbfe;
+    background: rgba(59, 130, 246, 0.18);
+    border: 1px solid rgba(59, 130, 246, 0.26);
+}
+
+.source-binance {
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.26);
+}
+
+.source-demo,
+.source-loading {
+    color: #c4b5fd;
+    background: rgba(139, 92, 246, 0.16);
+    border: 1px solid rgba(139, 92, 246, 0.26);
+}
+
+.asset-price-block {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 6px;
+}
+
+.asset-price-block span {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.asset-price-block strong {
+    color: #f8fafc;
+    font-size: 36px;
+    line-height: 1;
+    letter-spacing: -0.06em;
+}
+
+.asset-price-block small {
+    font-size: 15px;
+    font-weight: 950;
+}
+
+.asset-card-metrics {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.asset-mini-metric {
+    display: grid;
+    gap: 5px;
+    padding: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 15px;
+    background: rgba(2, 6, 23, 0.26);
+}
+
+.asset-mini-metric span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.asset-mini-metric strong {
+    overflow: hidden;
+    color: #e2e8f0;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-card-actions {
+    position: relative;
+    z-index: 1;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.positive-value {
+    color: #86efac !important;
+}
+
+.negative-value {
+    color: #fecaca !important;
+}
+
 .compare-form,
 .settings-form {
     display: grid;
@@ -265,6 +502,21 @@ p {
     font-weight: 850;
 }
 
+@media (max-width: 1280px) {
+    .asset-grid-rich,
+    .asset-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .assets-overview-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .assets-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 1100px) {
     .app-shell {
         grid-template-columns: 1fr;
@@ -280,7 +532,6 @@ p {
     }
 
     .summary-grid,
-    .asset-grid,
     .compare-form {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -299,7 +550,18 @@ p {
     .nav,
     .summary-grid,
     .asset-grid,
-    .compare-form {
+    .asset-grid-rich,
+    .compare-form,
+    .assets-controls,
+    .assets-overview-grid {
         grid-template-columns: 1fr;
+    }
+
+    .asset-price-block strong {
+        font-size: 30px;
+    }
+
+    .asset-card-title-row strong {
+        font-size: 30px;
     }
 }
