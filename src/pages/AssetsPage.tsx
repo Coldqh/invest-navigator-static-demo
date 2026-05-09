@@ -138,9 +138,6 @@ export function AssetsPage() {
                 <div>
                     <p className="eyebrow">Активы</p>
                     <h1>Рыночный список</h1>
-                    <p>
-                        Акции MOEX, крипта Binance, браузерная аналитика и fallback-данные для GitHub Pages.
-                    </p>
                 </div>
 
                 <div className="hero-actions">
@@ -234,7 +231,7 @@ export function AssetsPage() {
 
             {filteredAssets.length === 0 ? (
                 <div className="empty-state">
-                    Ничего не найдено. Попробуй сбросить фильтры или изменить поиск.
+                    Ничего не найдено
                 </div>
             ) : (
                 <div className="asset-grid asset-grid-rich">
@@ -289,8 +286,6 @@ function AssetCard({ asset, summary, isLoading }: AssetCardProps) {
 
                     <span>{asset.name}</span>
                 </div>
-
-                <em>{asset.exchange}</em>
             </div>
 
             <div className="asset-price-block">

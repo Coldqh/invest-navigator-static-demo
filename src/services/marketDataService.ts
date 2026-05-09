@@ -119,9 +119,9 @@ async function getBinancePrice(ticker: string, name: string): Promise<MarketPric
 
 async function getMoexPrice(ticker: string, name: string): Promise<MarketPrice> {
     try {
-        const url = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(
+        const url = `https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/${encodeURIComponent(
             ticker
-        )}.json?iss.meta=off&iss.only=marketdata&marketdata.columns=SECID,LAST,VALUE,VOLTODAY`;
+        )}.json?iss.meta=off&iss.only=marketdata&marketdata.columns=SECID,LAST,LCURRENTPRICE,LEGALCLOSEPRICE,MARKETPRICE,PREVPRICE,VOLTODAY,VALUE`;
 
         const response = await fetch(url);
 
@@ -143,15 +143,21 @@ async function getMoexPrice(ticker: string, name: string): Promise<MarketPrice> 
             throw new Error("MOEX empty response");
         }
 
-        const lastIndex = columns.indexOf("LAST");
-        const volumeIndex = columns.indexOf("VOLTODAY");
-        const valueIndex = columns.indexOf("VALUE");
+        const price = firstPositiveNumber(row, columns, [
+            "LAST",
+            "LCURRENTPRICE",
+            "LEGALCLOSEPRICE",
+            "MARKETPRICE",
+            "PREVPRICE"
+        ]);
 
-        const price = Number(row[lastIndex]);
-        const volume = Number(row[volumeIndex] ?? row[valueIndex] ?? 0);
+        const volume = firstFiniteNumber(row, columns, [
+            "VOLTODAY",
+            "VALUE"
+        ]);
 
         if (!Number.isFinite(price) || price <= 0) {
-            throw new Error("MOEX LAST is empty");
+            throw new Error("MOEX price is empty");
         }
 
         return {
@@ -184,7 +190,7 @@ async function getBinanceCandles(
 
         const data = await response.json() as Array<Array<number | string>>;
 
-        return data.map((row) => ({
+        return data.map<Candle>((row) => ({
             timestamp: new Date(Number(row[0])).toISOString(),
             open: Number(row[1]),
             high: Number(row[2]),
@@ -208,7 +214,7 @@ async function getMoexCandles(
             .toISOString()
             .slice(0, 10);
 
-        const url = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(
+        const url = `https://iss.moex.com/iss/engines/stock/markets/shares/boards/TQBR/securities/${encodeURIComponent(
             ticker
         )}/candles.json?from=${from}&interval=${config.interval}&iss.meta=off`;
 
@@ -240,15 +246,31 @@ async function getMoexCandles(
         const volumeIndex = columns.indexOf("volume");
         const beginIndex = columns.indexOf("begin");
 
-        return rows.slice(-config.limit).map((row) => ({
-            timestamp: new Date(String(row[beginIndex])).toISOString(),
-            open: Number(row[openIndex]),
-            high: Number(row[highIndex]),
-            low: Number(row[lowIndex]),
-            close: Number(row[closeIndex]),
-            volume: Number(row[volumeIndex] ?? row[valueIndex] ?? 0),
-            source: "MOEX"
-        }));
+        const candles: Candle[] = rows
+            .slice(-config.limit)
+            .map<Candle>((row) => ({
+                timestamp: new Date(String(row[beginIndex])).toISOString(),
+                open: Number(row[openIndex]),
+                high: Number(row[highIndex]),
+                low: Number(row[lowIndex]),
+                close: Number(row[closeIndex]),
+                volume: Number(row[volumeIndex] ?? row[valueIndex] ?? 0),
+                source: "MOEX"
+            }))
+            .filter((candle) => {
+                return (
+                    Number.isFinite(candle.open) &&
+                    Number.isFinite(candle.high) &&
+                    Number.isFinite(candle.low) &&
+                    Number.isFinite(candle.close)
+                );
+            });
+
+        if (candles.length === 0) {
+            throw new Error("MOEX candles parsed empty");
+        }
+
+        return candles;
     } catch {
         return getDemoCandlesByPeriod(ticker, "DEMO", period);
     }
@@ -337,6 +359,50 @@ function getMoexPeriodConfig(period: ChartPeriod): {
         limit: 30,
         daysBack: 45
     };
+}
+
+function firstPositiveNumber(
+    row: Array<string | number | null>,
+    columns: string[],
+    names: string[]
+): number {
+    for (const name of names) {
+        const index = columns.indexOf(name);
+
+        if (index < 0) {
+            continue;
+        }
+
+        const value = Number(row[index]);
+
+        if (Number.isFinite(value) && value > 0) {
+            return value;
+        }
+    }
+
+    return 0;
+}
+
+function firstFiniteNumber(
+    row: Array<string | number | null>,
+    columns: string[],
+    names: string[]
+): number {
+    for (const name of names) {
+        const index = columns.indexOf(name);
+
+        if (index < 0) {
+            continue;
+        }
+
+        const value = Number(row[index]);
+
+        if (Number.isFinite(value)) {
+            return value;
+        }
+    }
+
+    return 0;
 }
 
 function average(values: number[]): number {
