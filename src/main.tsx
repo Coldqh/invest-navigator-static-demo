@@ -8,6 +8,7 @@ import "./styles/dashboard.css";
 import "./styles/asset-details.css";
 import "./styles/compare.css";
 import "./styles/portfolio.css";
+import "./styles/ai-report.css";
 
 const rootElement = document.getElementById("root");
 

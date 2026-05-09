@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { AiReportPanel } from "../components/AiReportPanel";
+import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
-import { getMarketPrice } from "../services/marketDataService";
+import { generatePortfolioReport, type AiReport } from "../services/browserAiService";
 import {
     buyAsset,
     getClosedTrades,
@@ -11,13 +13,13 @@ import {
     updateAccount,
     type ClosedTrade
 } from "../services/browserPortfolioService";
+import { getMarketPrice } from "../services/marketDataService";
 import type {
     MarketPrice,
     PortfolioLotView,
     PortfolioSimulator,
     PortfolioTransaction
 } from "../types/domain";
-import { LoadingBlock } from "../components/LoadingBlock";
 
 export function PortfolioPage() {
     const assets = useMemo(() => getAssets(), []);
@@ -31,6 +33,8 @@ export function PortfolioPage() {
     const [buyQuote, setBuyQuote] = useState<MarketPrice | null>(null);
     const [expandedTickers, setExpandedTickers] = useState<Record<string, boolean>>({});
     const [sellQuantities, setSellQuantities] = useState<Record<string, string>>({});
+    const [report, setReport] = useState<AiReport | null>(null);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -92,6 +96,7 @@ export function PortfolioPage() {
 
         try {
             setError("");
+            setReport(null);
             await buyAsset(buyTicker.trim().toUpperCase(), Number(buyQuantity));
             setBuyQuantity("");
             await refresh();
@@ -103,6 +108,7 @@ export function PortfolioPage() {
     async function handleSell(lot: PortfolioLotView) {
         try {
             setError("");
+            setReport(null);
             await sellLot(lot.id, Number(sellQuantities[lot.id]));
             setSellQuantities((current) => ({ ...current, [lot.id]: "" }));
             await refresh();
@@ -111,13 +117,32 @@ export function PortfolioPage() {
         }
     }
 
+    async function handleGenerateReport() {
+        if (!simulator) {
+            return;
+        }
+
+        try {
+            setError("");
+            setIsGeneratingReport(true);
+            const nextReport = await generatePortfolioReport(simulator);
+            setReport(nextReport);
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : "Ошибка AI-анализа портфеля");
+        } finally {
+            setIsGeneratingReport(false);
+        }
+    }
+
     async function handleSeedDemo() {
         seedDemoPortfolio();
+        setReport(null);
         await refresh();
     }
 
     async function handleReset() {
         resetPortfolio();
+        setReport(null);
         await refresh();
     }
 
@@ -194,6 +219,15 @@ export function PortfolioPage() {
 
                     <button type="button" className="ghost-button danger-button" onClick={handleReset}>
                         Сбросить
+                    </button>
+
+                    <button
+                        type="button"
+                        className="primary-button"
+                        disabled={isGeneratingReport}
+                        onClick={handleGenerateReport}
+                    >
+                        {isGeneratingReport ? "Анализируем..." : "AI-отчёт"}
                     </button>
                 </div>
             </div>
@@ -297,6 +331,13 @@ export function PortfolioPage() {
                     </form>
                 </article>
             </div>
+
+            {report && (
+                <AiReportPanel
+                    title="AI-анализ портфеля"
+                    report={report}
+                />
+            )}
 
             <div className="summary-grid portfolio-summary-grid">
                 <Summary label="Активов" value={String(simulator.assetsCount)} />

@@ -1,0 +1,135 @@
+.ai-report-panel {
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 20rem),
+            radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.1), transparent 18rem),
+            rgba(15, 23, 42, 0.72);
+}
+
+.ai-provider-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    color: #bfdbfe;
+    background: rgba(59, 130, 246, 0.14);
+    border: 1px solid rgba(59, 130, 246, 0.22);
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+}
+
+.ai-report-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 150px;
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+.ai-verdict-card,
+.ai-score-card,
+.ai-list-card {
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    background: rgba(2, 6, 23, 0.28);
+    box-shadow: 0 18px 70px rgba(0, 0, 0, 0.12);
+}
+
+.ai-verdict-card {
+    display: grid;
+    gap: 10px;
+    padding: 20px;
+    border-radius: 22px;
+}
+
+.ai-verdict-card span,
+.ai-list-card span,
+.ai-score-card span,
+.ai-report-footer span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.ai-verdict-card strong {
+    color: #f8fafc;
+    font-size: 32px;
+    line-height: 1;
+    letter-spacing: -0.06em;
+}
+
+.ai-verdict-card p {
+    margin-bottom: 0;
+    color: #cbd5e1;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.ai-score-card {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 8px;
+    width: 150px;
+    height: 150px;
+    border-radius: 999px;
+    background:
+            radial-gradient(circle at center, rgba(15, 23, 42, 0.86), rgba(2, 6, 23, 0.94)),
+            conic-gradient(from 140deg, #22c55e, #38bdf8, #a855f7, #f97316, #22c55e);
+}
+
+.ai-score-card strong {
+    color: #f8fafc;
+    font-size: 42px;
+    line-height: 1;
+    letter-spacing: -0.07em;
+}
+
+.ai-score-card span {
+    color: #e2e8f0;
+}
+
+.ai-report-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.ai-list-card {
+    display: grid;
+    gap: 12px;
+    padding: 18px;
+    border-radius: 20px;
+}
+
+.ai-list-card ul {
+    display: grid;
+    gap: 10px;
+    padding-left: 18px;
+    margin: 0;
+}
+
+.ai-list-card li {
+    color: #dbeafe;
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.ai-report-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 16px;
+}
+
+@media (max-width: 1100px) {
+    .ai-report-hero,
+    .ai-report-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-score-card {
+        width: 130px;
+        height: 130px;
+    }
+}

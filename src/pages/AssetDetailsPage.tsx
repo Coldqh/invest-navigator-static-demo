@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { LoadingBlock } from "../components/LoadingBlock";
+import { AiReportPanel } from "../components/AiReportPanel";
 import { getAsset } from "../services/assetsService";
 import { generateAssetReport, type AiReport } from "../services/browserAiService";
 import {
@@ -65,6 +66,7 @@ export function AssetDetailsPage() {
         try {
             setError("");
             setIsInitialLoading(true);
+            setReport(null);
 
             const [loadedPrice, loadedAnalytics, loadedCandles] = await Promise.all([
                 getMarketPrice(currentAsset.ticker),
@@ -124,6 +126,7 @@ export function AssetDetailsPage() {
         }
 
         try {
+            setError("");
             setIsGeneratingReport(true);
             const nextReport = await generateAssetReport(analytics);
             setReport(nextReport);
@@ -487,39 +490,10 @@ export function AssetDetailsPage() {
                 </article>
 
                 {report && (
-                    <article className="panel asset-ai-panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>AI-анализ</h2>
-                            </div>
-                        </div>
-
-                        <div className="asset-ai-summary">
-                            <p>{report.summary}</p>
-                        </div>
-
-                        <div className="asset-ai-grid">
-                            <div>
-                                <h3>Позитивные факторы</h3>
-                                <ul>
-                                    {report.positiveFactors.map((item) => (
-                                        <li key={item}>{item}</li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            <div>
-                                <h3>Негативные факторы</h3>
-                                <ul>
-                                    {report.negativeFactors.map((item) => (
-                                        <li key={item}>{item}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
-
-                        <small>{report.disclaimer}</small>
-                    </article>
+                    <AiReportPanel
+                        title="AI-анализ"
+                        report={report}
+                    />
                 )}
             </div>
         </section>
@@ -648,10 +622,6 @@ function formatCompactNumber(value: number): string {
 
 function formatDateTime(value: string): string {
     return new Date(value).toLocaleString("ru-RU");
-}
-
-function formatDate(value: string): string {
-    return new Date(value).toLocaleDateString("ru-RU");
 }
 
 function formatShortDate(value: string): string {
