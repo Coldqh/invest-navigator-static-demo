@@ -1,378 +1,590 @@
-import { createDemoCandles, createDemoPriceDrift } from "../data/demoMarketData";
-import { getAsset } from "./assetsService";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { LoadingBlock } from "../components/LoadingBlock";
+import { getAsset } from "../services/assetsService";
+import { generateAssetReport, type AiReport } from "../services/browserAiService";
+import {
+    getAnalyticsSummary,
+    getCandles,
+    getMarketPrice,
+    type ChartPeriod
+} from "../services/marketDataService";
 import type {
     AnalyticsSummary,
+    Asset,
     Candle,
-    MarketPrice,
-    MarketDataSource,
-    RiskLevel
+    MarketPrice
 } from "../types/domain";
 
-export type ChartPeriod = "DAY" | "WEEK" | "MONTH";
+type ChartViewMode = "LINE" | "CANDLES";
 
-export async function getMarketPrice(ticker: string): Promise<MarketPrice> {
-    const asset = getAsset(ticker);
+export function AssetDetailsPage() {
+    const { ticker = "" } = useParams();
+    const asset = useMemo(() => getAsset(ticker), [ticker]);
+
+    const [price, setPrice] = useState<MarketPrice | null>(null);
+    const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
+    const [candles, setCandles] = useState<Candle[]>([]);
+    const [report, setReport] = useState<AiReport | null>(null);
+
+    const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("MONTH");
+    const [chartViewMode, setChartViewMode] = useState<ChartViewMode>("LINE");
+
+    const [isLoading, setIsLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        loadAssetData(asset, chartPeriod);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [asset?.ticker, chartPeriod]);
+
+    async function loadAssetData(currentAsset: Asset | null, period: ChartPeriod) {
+        if (!currentAsset) {
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            setError("");
+            setIsLoading(true);
+
+            const [loadedPrice, loadedAnalytics, loadedCandles] = await Promise.all([
+                getMarketPrice(currentAsset.ticker),
+                getAnalyticsSummary(currentAsset.ticker),
+                getCandles(currentAsset.ticker, period)
+            ]);
+
+            setPrice(loadedPrice);
+            setAnalytics(loadedAnalytics);
+            setCandles(loadedCandles);
+        } catch (error: unknown) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось загрузить данные актива"
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    async function handleRefresh() {
+        if (!asset) {
+            return;
+        }
+
+        try {
+            setIsRefreshing(true);
+            await loadAssetData(asset, chartPeriod);
+        } finally {
+            setIsRefreshing(false);
+        }
+    }
+
+    async function handleGenerateReport() {
+        if (!analytics) {
+            return;
+        }
+
+        try {
+            setIsGeneratingReport(true);
+            const nextReport = await generateAssetReport(analytics);
+            setReport(nextReport);
+        } catch (error: unknown) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось создать AI-отчёт"
+            );
+        } finally {
+            setIsGeneratingReport(false);
+        }
+    }
+
+    const sortedCandles = useMemo(() => {
+        return [...candles].sort((first, second) => {
+            return new Date(first.timestamp).getTime() - new Date(second.timestamp).getTime();
+        });
+    }, [candles]);
+
+    const visibleCandles = useMemo(() => {
+        if (chartPeriod === "DAY") {
+            return sortedCandles.slice(-24);
+        }
+
+        if (chartPeriod === "WEEK") {
+            return sortedCandles.slice(-42);
+        }
+
+        return sortedCandles.slice(-30);
+    }, [chartPeriod, sortedCandles]);
+
+    const latestCandles = useMemo(() => {
+        return sortedCandles.slice(-10);
+    }, [sortedCandles]);
+
+    const chartBounds = useMemo(() => {
+        if (visibleCandles.length === 0) {
+            return {
+                minLow: 0,
+                maxHigh: 1
+            };
+        }
+
+        return {
+            minLow: Math.min(...visibleCandles.map((candle) => candle.low)),
+            maxHigh: Math.max(...visibleCandles.map((candle) => candle.high))
+        };
+    }, [visibleCandles]);
+
+    const lineChartPoints = useMemo(() => {
+        if (visibleCandles.length === 0) {
+            return "";
+        }
+
+        const min = chartBounds.minLow;
+        const max = chartBounds.maxHigh;
+        const range = Math.max(max - min, 1);
+
+        return visibleCandles
+            .map((candle, index) => {
+                const x = visibleCandles.length === 1
+                    ? 500
+                    : (index / (visibleCandles.length - 1)) * 1000;
+
+                const y = 260 - ((candle.close - min) / range) * 220;
+
+                return `${x},${y}`;
+            })
+            .join(" ");
+    }, [chartBounds.maxHigh, chartBounds.minLow, visibleCandles]);
 
     if (!asset) {
-        throw new Error(`Asset not found: ${ticker}`);
+        return (
+            <section className="page">
+                <div className="empty-state">Актив не найден</div>
+            </section>
+        );
     }
 
-    if (asset.assetType === "CRYPTO") {
-        return getBinancePrice(asset.ticker, asset.name);
+    if (isLoading) {
+        return <LoadingBlock text="Загружаем актив..." />;
     }
 
-    if (asset.exchange === "MOEX") {
-        return getMoexPrice(asset.ticker, asset.name);
-    }
+    const changePercent = analytics?.priceChangePercent ?? 0;
+    const isPositive = changePercent >= 0;
+    const source = price?.source ?? analytics?.source ?? "DEMO";
+    const riskScore = analytics?.riskScore ?? 0;
 
-    return getDemoPrice(asset.ticker, asset.name, "DEMO");
-}
+    return (
+        <section className="page asset-details-page">
+            <article className="asset-details-hero">
+                <div className="asset-details-hero-main">
+                    <p className="eyebrow">{asset.exchange}</p>
+                    <h1>{asset.ticker}</h1>
 
-export async function getCandles(
-    ticker: string,
-    period: ChartPeriod = "MONTH"
-): Promise<Candle[]> {
-    const asset = getAsset(ticker);
+                    <div className="asset-details-badges">
+                        <span>{translateAssetType(asset.assetType)}</span>
+                        <span>{asset.currency}</span>
+                        <span>{asset.isin || "NO ISIN"}</span>
+                        <span className={`source-pill source-${source.toLowerCase()}`}>
+                            {source}
+                        </span>
+                    </div>
+                </div>
 
-    if (!asset) {
-        throw new Error(`Asset not found: ${ticker}`);
-    }
+                <div className="asset-details-price-card">
+                    <span>Текущая цена</span>
+                    <strong>
+                        {price
+                            ? formatMoney(price.price, asset.currency)
+                            : "—"}
+                    </strong>
 
-    if (asset.assetType === "CRYPTO") {
-        return getBinanceCandles(asset.ticker, period);
-    }
+                    {analytics && (
+                        <em className={isPositive ? "positive-value" : "negative-value"}>
+                            {isPositive ? "+" : ""}
+                            {formatPercent(analytics.priceChangePercent)}
+                        </em>
+                    )}
 
-    if (asset.exchange === "MOEX") {
-        return getMoexCandles(asset.ticker, period);
-    }
+                    <small>{price ? formatDateTime(price.timestamp) : "—"}</small>
 
-    return getDemoCandlesByPeriod(asset.ticker, "DEMO", period);
-}
+                    <div className="hero-actions">
+                        <button
+                            type="button"
+                            className="ghost-button"
+                            disabled={isRefreshing}
+                            onClick={handleRefresh}
+                        >
+                            {isRefreshing ? "Обновляем..." : "Обновить"}
+                        </button>
 
-export async function getAnalyticsSummary(ticker: string): Promise<AnalyticsSummary> {
-    const price = await getMarketPrice(ticker);
-    const candles = await getCandles(ticker, "MONTH");
+                        <button
+                            type="button"
+                            className="primary-button"
+                            disabled={isGeneratingReport}
+                            onClick={handleGenerateReport}
+                        >
+                            {isGeneratingReport ? "Генерируем..." : "AI-отчёт"}
+                        </button>
 
-    const closes = candles.map((candle) => candle.close);
-    const firstClose = closes[0] ?? price.price;
-    const lastClose = closes[closes.length - 1] ?? price.price;
-    const priceChange = lastClose - firstClose;
-    const priceChangePercent = firstClose === 0 ? 0 : (priceChange / firstClose) * 100;
-    const averageVolume = average(candles.map((candle) => candle.volume));
-    const volatilityPercent = calculateVolatilityPercent(closes);
-    const riskScore = clamp(
-        Math.round(volatilityPercent * 5 + Math.abs(priceChangePercent) * 1.4),
-        0,
-        100
+                        <Link to="/portfolio" className="ghost-button">
+                            Купить
+                        </Link>
+                    </div>
+                </div>
+            </article>
+
+            {error && <div className="error-block">{error}</div>}
+
+            <div className="summary-grid">
+                <SummaryCard
+                    label="Риск"
+                    value={analytics ? `${analytics.riskScore}/100` : "—"}
+                />
+
+                <SummaryCard
+                    label="Волатильность"
+                    value={analytics ? formatPercent(analytics.volatilityPercent) : "—"}
+                />
+
+                <SummaryCard
+                    label="Средний объём"
+                    value={analytics ? formatCompactNumber(analytics.averageVolume) : "—"}
+                />
+
+                <SummaryCard
+                    label="Точек данных"
+                    value={analytics ? String(analytics.dataPoints) : "—"}
+                />
+            </div>
+
+            <article className="panel asset-chart-panel">
+                <div className="asset-chart-header">
+                    <div>
+                        <h2>График</h2>
+                    </div>
+
+                    <div className="asset-chart-controls">
+                        <div className="asset-chart-segment">
+                            <button
+                                type="button"
+                                className={chartPeriod === "DAY" ? "active" : ""}
+                                onClick={() => setChartPeriod("DAY")}
+                            >
+                                День
+                            </button>
+
+                            <button
+                                type="button"
+                                className={chartPeriod === "WEEK" ? "active" : ""}
+                                onClick={() => setChartPeriod("WEEK")}
+                            >
+                                Неделя
+                            </button>
+
+                            <button
+                                type="button"
+                                className={chartPeriod === "MONTH" ? "active" : ""}
+                                onClick={() => setChartPeriod("MONTH")}
+                            >
+                                Месяц
+                            </button>
+                        </div>
+
+                        <div className="asset-chart-segment">
+                            <button
+                                type="button"
+                                className={chartViewMode === "LINE" ? "active" : ""}
+                                onClick={() => setChartViewMode("LINE")}
+                            >
+                                Линия
+                            </button>
+
+                            <button
+                                type="button"
+                                className={chartViewMode === "CANDLES" ? "active" : ""}
+                                onClick={() => setChartViewMode("CANDLES")}
+                            >
+                                Свечи
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {visibleCandles.length === 0 ? (
+                    <div className="empty-state">Свечи пока не загружены</div>
+                ) : (
+                    <>
+                        {chartViewMode === "LINE" ? (
+                            <div className="asset-line-chart">
+                                <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+                                    <defs>
+                                        <linearGradient id="lineChartGradient" x1="0" x2="0" y1="0" y2="1">
+                                            <stop offset="0%" stopColor="rgba(56, 189, 248, 0.36)" />
+                                            <stop offset="100%" stopColor="rgba(56, 189, 248, 0)" />
+                                        </linearGradient>
+                                    </defs>
+
+                                    <polyline
+                                        points={`0,280 ${lineChartPoints} 1000,280`}
+                                        className="asset-line-chart-area"
+                                    />
+
+                                    <polyline
+                                        points={lineChartPoints}
+                                        className="asset-line-chart-line"
+                                    />
+                                </svg>
+
+                                <div className="asset-line-chart-labels">
+                                    <span>{formatNumber(chartBounds.minLow)}</span>
+                                    <span>{formatNumber(chartBounds.maxHigh)}</span>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="asset-candle-strip asset-candle-strip-large">
+                                {visibleCandles.map((candle) => (
+                                    <CandleBar
+                                        key={candle.timestamp}
+                                        candle={candle}
+                                        minLow={chartBounds.minLow}
+                                        maxHigh={chartBounds.maxHigh}
+                                    />
+                                ))}
+                            </div>
+                        )}
+
+                        <div className="asset-candle-table">
+                            <div className="asset-candle-table-head">
+                                <span>Дата</span>
+                                <span>Open</span>
+                                <span>High</span>
+                                <span>Low</span>
+                                <span>Close</span>
+                                <span>Source</span>
+                            </div>
+
+                            {latestCandles.slice().reverse().map((candle) => (
+                                <div className="asset-candle-table-row" key={candle.timestamp}>
+                                    <span>{formatDate(candle.timestamp)}</span>
+                                    <strong>{formatNumber(candle.open)}</strong>
+                                    <strong>{formatNumber(candle.high)}</strong>
+                                    <strong>{formatNumber(candle.low)}</strong>
+                                    <strong>{formatNumber(candle.close)}</strong>
+                                    <em>{candle.source}</em>
+                                </div>
+                            ))}
+                        </div>
+                    </>
+                )}
+            </article>
+
+            <div className="asset-details-grid">
+                <article className="panel asset-risk-panel">
+                    <div className="panel-header">
+                        <div>
+                            <h2>Профиль риска</h2>
+                        </div>
+                    </div>
+
+                    <div className="asset-risk-score">
+                        <div className="asset-risk-orb">
+                            <strong>{riskScore}</strong>
+                            <span>из 100</span>
+                        </div>
+
+                        <div>
+                            <h3>{analytics ? translateRiskLevel(analytics.riskLevel) : "Нет данных"}</h3>
+                        </div>
+                    </div>
+
+                    <div className="asset-risk-meter">
+                        <div style={{ width: `${riskScore}%` }} />
+                    </div>
+
+                    <div className="asset-risk-factors">
+                        <RiskFactor
+                            label="Движение"
+                            value={analytics ? formatPercent(Math.abs(analytics.priceChangePercent)) : "—"}
+                        />
+
+                        <RiskFactor
+                            label="Волатильность"
+                            value={analytics ? formatPercent(analytics.volatilityPercent) : "—"}
+                        />
+
+                        <RiskFactor
+                            label="Источник"
+                            value={source}
+                        />
+                    </div>
+                </article>
+
+                {report && (
+                    <article className="panel asset-ai-panel">
+                        <div className="panel-header">
+                            <div>
+                                <h2>AI-анализ</h2>
+                            </div>
+                        </div>
+
+                        <div className="asset-ai-summary">
+                            <p>{report.summary}</p>
+                        </div>
+
+                        <div className="asset-ai-grid">
+                            <div>
+                                <h3>Позитивные факторы</h3>
+                                <ul>
+                                    {report.positiveFactors.map((item) => (
+                                        <li key={item}>{item}</li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h3>Негативные факторы</h3>
+                                <ul>
+                                    {report.negativeFactors.map((item) => (
+                                        <li key={item}>{item}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <small>{report.disclaimer}</small>
+                    </article>
+                )}
+            </div>
+        </section>
     );
-
-    return {
-        ticker: price.ticker,
-        name: price.name,
-        currentPrice: price.price,
-        firstClose,
-        lastClose,
-        priceChange,
-        priceChangePercent,
-        averageVolume,
-        volatilityPercent,
-        riskScore,
-        riskLevel: toRiskLevel(riskScore),
-        dataPoints: candles.length,
-        source: price.source
-    };
 }
 
-async function getBinancePrice(ticker: string, name: string): Promise<MarketPrice> {
-    try {
-        const response = await fetch(
-            `https://api.binance.com/api/v3/ticker/24hr?symbol=${encodeURIComponent(ticker)}`
-        );
+type SummaryCardProps = {
+    label: string;
+    value: string;
+};
 
-        if (!response.ok) {
-            throw new Error(`Binance failed with ${response.status}`);
-        }
-
-        const data = await response.json() as {
-            lastPrice: string;
-            volume: string;
-        };
-
-        const price = Number(data.lastPrice);
-
-        if (!Number.isFinite(price) || price <= 0) {
-            throw new Error("Binance returned invalid price");
-        }
-
-        return {
-            ticker,
-            name,
-            price,
-            volume: Number(data.volume),
-            source: "BINANCE",
-            timestamp: new Date().toISOString()
-        };
-    } catch {
-        return getDemoPrice(ticker, name, "DEMO");
-    }
+function SummaryCard({ label, value }: SummaryCardProps) {
+    return (
+        <div className="summary-card">
+            <span>{label}</span>
+            <strong>{value}</strong>
+        </div>
+    );
 }
 
-async function getMoexPrice(ticker: string, name: string): Promise<MarketPrice> {
-    try {
-        const url = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(
-            ticker
-        )}.json?iss.meta=off&iss.only=marketdata&marketdata.columns=SECID,LAST,VALUE,VOLTODAY`;
+type CandleBarProps = {
+    candle: Candle;
+    minLow: number;
+    maxHigh: number;
+};
 
-        const response = await fetch(url);
+function CandleBar({ candle, minLow, maxHigh }: CandleBarProps) {
+    const totalRange = Math.max(maxHigh - minLow, 1);
+    const candleTop = ((maxHigh - candle.high) / totalRange) * 100;
+    const candleHeight = Math.max(((candle.high - candle.low) / totalRange) * 100, 4);
+    const bodyTop = ((maxHigh - Math.max(candle.open, candle.close)) / totalRange) * 100;
+    const bodyHeight = Math.max((Math.abs(candle.close - candle.open) / totalRange) * 100, 4);
+    const isPositive = candle.close >= candle.open;
 
-        if (!response.ok) {
-            throw new Error(`MOEX failed with ${response.status}`);
-        }
+    return (
+        <div className="asset-candle-bar">
+            <div
+                className="asset-candle-wick"
+                style={{
+                    top: `${candleTop}%`,
+                    height: `${candleHeight}%`
+                }}
+            />
 
-        const data = await response.json() as {
-            marketdata?: {
-                columns?: string[];
-                data?: Array<Array<string | number | null>>;
-            };
-        };
+            <div
+                className={`asset-candle-body ${isPositive ? "candle-up" : "candle-down"}`}
+                style={{
+                    top: `${bodyTop}%`,
+                    height: `${bodyHeight}%`
+                }}
+            />
 
-        const columns = data.marketdata?.columns ?? [];
-        const row = data.marketdata?.data?.[0];
-
-        if (!row) {
-            throw new Error("MOEX empty response");
-        }
-
-        const lastIndex = columns.indexOf("LAST");
-        const volumeIndex = columns.indexOf("VOLTODAY");
-        const valueIndex = columns.indexOf("VALUE");
-
-        const price = Number(row[lastIndex]);
-        const volume = Number(row[volumeIndex] ?? row[valueIndex] ?? 0);
-
-        if (!Number.isFinite(price) || price <= 0) {
-            throw new Error("MOEX LAST is empty");
-        }
-
-        return {
-            ticker,
-            name,
-            price,
-            volume,
-            source: "MOEX",
-            timestamp: new Date().toISOString()
-        };
-    } catch {
-        return getDemoPrice(ticker, name, "DEMO");
-    }
+            <span>{formatShortDate(candle.timestamp)}</span>
+        </div>
+    );
 }
 
-async function getBinanceCandles(
-    ticker: string,
-    period: ChartPeriod
-): Promise<Candle[]> {
-    try {
-        const config = getBinancePeriodConfig(period);
+type RiskFactorProps = {
+    label: string;
+    value: string;
+};
 
-        const response = await fetch(
-            `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(ticker)}&interval=${config.interval}&limit=${config.limit}`
-        );
-
-        if (!response.ok) {
-            throw new Error(`Binance candles failed with ${response.status}`);
-        }
-
-        const data = await response.json() as Array<Array<number | string>>;
-
-        return data.map((row) => ({
-            timestamp: new Date(Number(row[0])).toISOString(),
-            open: Number(row[1]),
-            high: Number(row[2]),
-            low: Number(row[3]),
-            close: Number(row[4]),
-            volume: Number(row[5]),
-            source: "BINANCE"
-        }));
-    } catch {
-        return getDemoCandlesByPeriod(ticker, "DEMO", period);
-    }
+function RiskFactor({ label, value }: RiskFactorProps) {
+    return (
+        <div className="asset-risk-factor">
+            <span>{label}</span>
+            <strong>{value}</strong>
+        </div>
+    );
 }
 
-async function getMoexCandles(
-    ticker: string,
-    period: ChartPeriod
-): Promise<Candle[]> {
-    try {
-        const config = getMoexPeriodConfig(period);
-        const from = new Date(Date.now() - config.daysBack * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .slice(0, 10);
+function translateAssetType(assetType: string): string {
+    if (assetType === "STOCK") return "Акция";
+    if (assetType === "CRYPTO") return "Крипта";
+    if (assetType === "ETF") return "ETF";
+    if (assetType === "BOND") return "Облигация";
+    if (assetType === "INDEX") return "Индекс";
+    if (assetType === "CURRENCY") return "Валюта";
 
-        const url = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(
-            ticker
-        )}/candles.json?from=${from}&interval=${config.interval}&iss.meta=off`;
-
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error(`MOEX candles failed with ${response.status}`);
-        }
-
-        const data = await response.json() as {
-            candles?: {
-                columns?: string[];
-                data?: Array<Array<string | number | null>>;
-            };
-        };
-
-        const columns = data.candles?.columns ?? [];
-        const rows = data.candles?.data ?? [];
-
-        if (rows.length === 0) {
-            throw new Error("MOEX candles empty response");
-        }
-
-        const openIndex = columns.indexOf("open");
-        const closeIndex = columns.indexOf("close");
-        const highIndex = columns.indexOf("high");
-        const lowIndex = columns.indexOf("low");
-        const valueIndex = columns.indexOf("value");
-        const volumeIndex = columns.indexOf("volume");
-        const beginIndex = columns.indexOf("begin");
-
-        return rows.slice(-config.limit).map((row) => ({
-            timestamp: new Date(String(row[beginIndex])).toISOString(),
-            open: Number(row[openIndex]),
-            high: Number(row[highIndex]),
-            low: Number(row[lowIndex]),
-            close: Number(row[closeIndex]),
-            volume: Number(row[volumeIndex] ?? row[valueIndex] ?? 0),
-            source: "MOEX"
-        }));
-    } catch {
-        return getDemoCandlesByPeriod(ticker, "DEMO", period);
-    }
+    return assetType;
 }
 
-function getDemoPrice(
-    ticker: string,
-    name: string,
-    source: MarketDataSource
-): MarketPrice {
-    const price = createDemoPriceDrift(ticker);
+function translateRiskLevel(riskLevel: string): string {
+    if (riskLevel === "LOW") return "Низкий риск";
+    if (riskLevel === "MEDIUM") return "Средний риск";
+    if (riskLevel === "HIGH") return "Высокий риск";
+    if (riskLevel === "CRITICAL") return "Критический риск";
 
-    return {
-        ticker,
-        name,
-        price,
-        volume: Math.round(price * 1200),
-        source,
-        timestamp: new Date().toISOString()
-    };
+    return riskLevel;
 }
 
-function getDemoCandlesByPeriod(
-    ticker: string,
-    source: MarketDataSource,
-    period: ChartPeriod
-): Candle[] {
-    if (period === "DAY") {
-        return createDemoCandles(ticker, source, 24);
-    }
-
-    if (period === "WEEK") {
-        return createDemoCandles(ticker, source, 14);
-    }
-
-    return createDemoCandles(ticker, source, 30);
+function formatMoney(value: number, currency: string): string {
+    return `${new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: currency === "USD" ? 4 : 2
+    }).format(value)} ${currency}`;
 }
 
-function getBinancePeriodConfig(period: ChartPeriod): {
-    interval: string;
-    limit: number;
-} {
-    if (period === "DAY") {
-        return {
-            interval: "1h",
-            limit: 24
-        };
-    }
-
-    if (period === "WEEK") {
-        return {
-            interval: "4h",
-            limit: 42
-        };
-    }
-
-    return {
-        interval: "1d",
-        limit: 30
-    };
+function formatNumber(value: number): string {
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 4
+    }).format(value);
 }
 
-function getMoexPeriodConfig(period: ChartPeriod): {
-    interval: number;
-    limit: number;
-    daysBack: number;
-} {
-    if (period === "DAY") {
-        return {
-            interval: 60,
-            limit: 24,
-            daysBack: 3
-        };
-    }
-
-    if (period === "WEEK") {
-        return {
-            interval: 60,
-            limit: 42,
-            daysBack: 10
-        };
-    }
-
-    return {
-        interval: 24,
-        limit: 30,
-        daysBack: 45
-    };
+function formatPercent(value: number): string {
+    return `${new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 2
+    }).format(value)}%`;
 }
 
-function average(values: number[]): number {
-    if (values.length === 0) {
-        return 0;
-    }
-
-    return values.reduce((sum, value) => sum + value, 0) / values.length;
+function formatCompactNumber(value: number): string {
+    return new Intl.NumberFormat("ru-RU", {
+        notation: "compact",
+        maximumFractionDigits: 2
+    }).format(value);
 }
 
-function calculateVolatilityPercent(values: number[]): number {
-    if (values.length < 2) {
-        return 0;
-    }
+function formatDateTime(value: string): string {
+    return new Date(value).toLocaleString("ru-RU");
+}
 
-    const changes = values.slice(1).map((value, index) => {
-        const previous = values[index];
+function formatDate(value: string): string {
+    return new Date(value).toLocaleDateString("ru-RU");
+}
 
-        if (previous === 0) {
-            return 0;
-        }
-
-        return ((value - previous) / previous) * 100;
+function formatShortDate(value: string): string {
+    return new Date(value).toLocaleDateString("ru-RU", {
+        day: "2-digit",
+        month: "2-digit"
     });
-
-    return average(changes.map((value) => Math.abs(value)));
-}
-
-function toRiskLevel(score: number): RiskLevel {
-    if (score >= 80) return "CRITICAL";
-    if (score >= 60) return "HIGH";
-    if (score >= 35) return "MEDIUM";
-
-    return "LOW";
-}
-
-function clamp(value: number, min: number, max: number): number {
-    return Math.min(Math.max(value, min), max);
 }

@@ -12,7 +12,6 @@ type CompareMetric = {
     firstValue: string;
     secondValue: string;
     winner: CompareWinner;
-    description: string;
 };
 
 export function ComparePage() {
@@ -78,14 +77,6 @@ export function ComparePage() {
 
         return buildCompareMetrics(firstItem, secondItem);
     }, [firstItem, secondItem]);
-
-    const compareSummary = useMemo(() => {
-        if (!firstItem || !secondItem) {
-            return null;
-        }
-
-        return buildCompareSummary(firstItem, secondItem, metrics);
-    }, [firstItem, metrics, secondItem]);
 
     const firstWins = metrics.filter((metric) => metric.winner === "FIRST").length;
     const secondWins = metrics.filter((metric) => metric.winner === "SECOND").length;
@@ -189,33 +180,6 @@ export function ComparePage() {
                             ))}
                         </div>
                     </article>
-
-                    {compareSummary && (
-                        <article className="panel compare-summary-panel">
-                            <div className="panel-header">
-                                <div>
-                                    <h2>Итог сравнения</h2>
-                                </div>
-                            </div>
-
-                            <div className="compare-summary-grid">
-                                <div className="compare-summary-main">
-                                    <h3>{compareSummary.title}</h3>
-                                    <p>{compareSummary.text}</p>
-                                </div>
-
-                                <div className="compare-summary-points">
-                                    {compareSummary.points.map((point) => (
-                                        <div key={point.label}>
-                                            <span>{point.label}</span>
-                                            <strong>{point.value}</strong>
-                                            <p>{point.text}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </article>
-                    )}
                 </>
             )}
         </section>
@@ -297,10 +261,9 @@ type CompareMetricRowProps = {
 
 function CompareMetricRow({ metric, firstTicker, secondTicker }: CompareMetricRowProps) {
     return (
-        <div className="compare-metric-row">
+        <div className="compare-metric-row compare-metric-row-compact">
             <div>
                 <span>{metric.label}</span>
-                <p>{metric.description}</p>
             </div>
 
             <strong className={metric.winner === "FIRST" ? "compare-winner" : ""}>
@@ -329,97 +292,33 @@ function buildCompareMetrics(
             label: "Рост",
             firstValue: formatPercent(first.priceChangePercent),
             secondValue: formatPercent(second.priceChangePercent),
-            winner: compareHigherIsBetter(first.priceChangePercent, second.priceChangePercent),
-            description: "Выше лучше"
+            winner: compareHigherIsBetter(first.priceChangePercent, second.priceChangePercent)
         },
         {
             label: "Риск",
             firstValue: `${first.riskScore}/100`,
             secondValue: `${second.riskScore}/100`,
-            winner: compareLowerIsBetter(first.riskScore, second.riskScore),
-            description: "Ниже лучше"
+            winner: compareLowerIsBetter(first.riskScore, second.riskScore)
         },
         {
             label: "Волатильность",
             firstValue: formatPercent(first.volatilityPercent),
             secondValue: formatPercent(second.volatilityPercent),
-            winner: compareLowerIsBetter(first.volatilityPercent, second.volatilityPercent),
-            description: "Ниже спокойнее"
+            winner: compareLowerIsBetter(first.volatilityPercent, second.volatilityPercent)
         },
         {
             label: "Объём",
             firstValue: formatCompactNumber(first.averageVolume),
             secondValue: formatCompactNumber(second.averageVolume),
-            winner: compareHigherIsBetter(first.averageVolume, second.averageVolume),
-            description: "Выше активнее"
+            winner: compareHigherIsBetter(first.averageVolume, second.averageVolume)
         },
         {
             label: "Цена",
             firstValue: formatNumber(first.currentPrice),
             secondValue: formatNumber(second.currentPrice),
-            winner: compareHigherIsBetter(first.currentPrice, second.currentPrice),
-            description: "Масштаб инструмента"
-        },
-        {
-            label: "Точек данных",
-            firstValue: String(first.dataPoints),
-            secondValue: String(second.dataPoints),
-            winner: compareHigherIsBetter(first.dataPoints, second.dataPoints),
-            description: "Больше стабильнее"
+            winner: compareHigherIsBetter(first.currentPrice, second.currentPrice)
         }
     ];
-}
-
-function buildCompareSummary(
-    first: AnalyticsSummary,
-    second: AnalyticsSummary,
-    metrics: CompareMetric[]
-) {
-    const firstWins = metrics.filter((metric) => metric.winner === "FIRST").length;
-    const secondWins = metrics.filter((metric) => metric.winner === "SECOND").length;
-
-    const leader =
-        firstWins > secondWins
-            ? first
-            : secondWins > firstWins
-                ? second
-                : null;
-
-    const calmer = first.riskScore <= second.riskScore ? first : second;
-    const strongerGrowth =
-        first.priceChangePercent >= second.priceChangePercent
-            ? first
-            : second;
-
-    const title = leader
-        ? `${leader.ticker} выглядит сильнее по сумме метрик`
-        : "Активы идут почти ровно";
-
-    const text = leader
-        ? `${leader.ticker} забирает больше категорий в текущем сравнении.`
-        : "По сумме категорий явного лидера нет.";
-
-    return {
-        title,
-        text,
-        points: [
-            {
-                label: "Спокойнее",
-                value: calmer.ticker,
-                text: `${calmer.ticker} имеет более низкий риск.`
-            },
-            {
-                label: "Сильнее рост",
-                value: strongerGrowth.ticker,
-                text: `${strongerGrowth.ticker} показывает лучший процент изменения.`
-            },
-            {
-                label: "Счёт",
-                value: `${firstWins} : ${secondWins}`,
-                text: `${first.ticker} против ${second.ticker}.`
-            }
-        ]
-    };
 }
 
 function compareHigherIsBetter(firstValue: number, secondValue: number): CompareWinner {
