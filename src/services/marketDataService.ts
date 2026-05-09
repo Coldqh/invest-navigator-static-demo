@@ -8,6 +8,8 @@ import type {
     RiskLevel
 } from "../types/domain";
 
+export type ChartPeriod = "DAY" | "WEEK" | "MONTH";
+
 export async function getMarketPrice(ticker: string): Promise<MarketPrice> {
     const asset = getAsset(ticker);
 
@@ -26,7 +28,10 @@ export async function getMarketPrice(ticker: string): Promise<MarketPrice> {
     return getDemoPrice(asset.ticker, asset.name, "DEMO");
 }
 
-export async function getCandles(ticker: string): Promise<Candle[]> {
+export async function getCandles(
+    ticker: string,
+    period: ChartPeriod = "MONTH"
+): Promise<Candle[]> {
     const asset = getAsset(ticker);
 
     if (!asset) {
@@ -34,19 +39,19 @@ export async function getCandles(ticker: string): Promise<Candle[]> {
     }
 
     if (asset.assetType === "CRYPTO") {
-        return getBinanceCandles(asset.ticker);
+        return getBinanceCandles(asset.ticker, period);
     }
 
     if (asset.exchange === "MOEX") {
-        return getMoexCandles(asset.ticker);
+        return getMoexCandles(asset.ticker, period);
     }
 
-    return createDemoCandles(asset.ticker, "DEMO");
+    return getDemoCandlesByPeriod(asset.ticker, "DEMO", period);
 }
 
 export async function getAnalyticsSummary(ticker: string): Promise<AnalyticsSummary> {
     const price = await getMarketPrice(ticker);
-    const candles = await getCandles(ticker);
+    const candles = await getCandles(ticker, "MONTH");
 
     const closes = candles.map((candle) => candle.close);
     const firstClose = closes[0] ?? price.price;
@@ -162,10 +167,15 @@ async function getMoexPrice(ticker: string, name: string): Promise<MarketPrice> 
     }
 }
 
-async function getBinanceCandles(ticker: string): Promise<Candle[]> {
+async function getBinanceCandles(
+    ticker: string,
+    period: ChartPeriod
+): Promise<Candle[]> {
     try {
+        const config = getBinancePeriodConfig(period);
+
         const response = await fetch(
-            `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(ticker)}&interval=1d&limit=30`
+            `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(ticker)}&interval=${config.interval}&limit=${config.limit}`
         );
 
         if (!response.ok) {
@@ -184,20 +194,23 @@ async function getBinanceCandles(ticker: string): Promise<Candle[]> {
             source: "BINANCE"
         }));
     } catch {
-        return createDemoCandles(ticker, "DEMO");
+        return getDemoCandlesByPeriod(ticker, "DEMO", period);
     }
 }
 
-async function getMoexCandles(ticker: string): Promise<Candle[]> {
+async function getMoexCandles(
+    ticker: string,
+    period: ChartPeriod
+): Promise<Candle[]> {
     try {
-        const today = new Date();
-        const from = new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000)
+        const config = getMoexPeriodConfig(period);
+        const from = new Date(Date.now() - config.daysBack * 24 * 60 * 60 * 1000)
             .toISOString()
             .slice(0, 10);
 
         const url = `https://iss.moex.com/iss/engines/stock/markets/shares/securities/${encodeURIComponent(
             ticker
-        )}/candles.json?from=${from}&interval=24&iss.meta=off`;
+        )}/candles.json?from=${from}&interval=${config.interval}&iss.meta=off`;
 
         const response = await fetch(url);
 
@@ -224,19 +237,20 @@ async function getMoexCandles(ticker: string): Promise<Candle[]> {
         const highIndex = columns.indexOf("high");
         const lowIndex = columns.indexOf("low");
         const valueIndex = columns.indexOf("value");
+        const volumeIndex = columns.indexOf("volume");
         const beginIndex = columns.indexOf("begin");
 
-        return rows.slice(-30).map((row) => ({
+        return rows.slice(-config.limit).map((row) => ({
             timestamp: new Date(String(row[beginIndex])).toISOString(),
             open: Number(row[openIndex]),
             high: Number(row[highIndex]),
             low: Number(row[lowIndex]),
             close: Number(row[closeIndex]),
-            volume: Number(row[valueIndex] ?? 0),
+            volume: Number(row[volumeIndex] ?? row[valueIndex] ?? 0),
             source: "MOEX"
         }));
     } catch {
-        return createDemoCandles(ticker, "DEMO");
+        return getDemoCandlesByPeriod(ticker, "DEMO", period);
     }
 }
 
@@ -245,13 +259,83 @@ function getDemoPrice(
     name: string,
     source: MarketDataSource
 ): MarketPrice {
+    const price = createDemoPriceDrift(ticker);
+
     return {
         ticker,
         name,
-        price: createDemoPriceDrift(ticker),
-        volume: Math.round(createDemoPriceDrift(ticker) * 1200),
+        price,
+        volume: Math.round(price * 1200),
         source,
         timestamp: new Date().toISOString()
+    };
+}
+
+function getDemoCandlesByPeriod(
+    ticker: string,
+    source: MarketDataSource,
+    period: ChartPeriod
+): Candle[] {
+    if (period === "DAY") {
+        return createDemoCandles(ticker, source, 24);
+    }
+
+    if (period === "WEEK") {
+        return createDemoCandles(ticker, source, 14);
+    }
+
+    return createDemoCandles(ticker, source, 30);
+}
+
+function getBinancePeriodConfig(period: ChartPeriod): {
+    interval: string;
+    limit: number;
+} {
+    if (period === "DAY") {
+        return {
+            interval: "1h",
+            limit: 24
+        };
+    }
+
+    if (period === "WEEK") {
+        return {
+            interval: "4h",
+            limit: 42
+        };
+    }
+
+    return {
+        interval: "1d",
+        limit: 30
+    };
+}
+
+function getMoexPeriodConfig(period: ChartPeriod): {
+    interval: number;
+    limit: number;
+    daysBack: number;
+} {
+    if (period === "DAY") {
+        return {
+            interval: 60,
+            limit: 24,
+            daysBack: 3
+        };
+    }
+
+    if (period === "WEEK") {
+        return {
+            interval: 60,
+            limit: 42,
+            daysBack: 10
+        };
+    }
+
+    return {
+        interval: 24,
+        limit: 30,
+        daysBack: 45
     };
 }
 

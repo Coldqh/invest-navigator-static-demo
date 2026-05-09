@@ -22,13 +22,7 @@
 }
 
 .asset-details-hero-main h1 {
-    margin-bottom: 12px;
-}
-
-.asset-details-hero-main p {
-    max-width: 720px;
     margin-bottom: 18px;
-    font-size: 17px;
 }
 
 .asset-details-badges {
@@ -89,15 +83,9 @@
     font-weight: 800;
 }
 
-.summary-card small {
-    color: #64748b;
-    font-size: 12px;
-    font-weight: 750;
-}
-
 .asset-details-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+    grid-template-columns: minmax(320px, 0.65fr) minmax(0, 1.35fr);
     gap: 18px;
 }
 
@@ -105,6 +93,90 @@
 .asset-risk-panel,
 .asset-ai-panel {
     min-width: 0;
+}
+
+.asset-chart-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 18px;
+}
+
+.asset-chart-header h2 {
+    margin-bottom: 0;
+}
+
+.asset-chart-controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.asset-chart-segment {
+    display: inline-flex;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.28);
+}
+
+.asset-chart-segment button {
+    min-height: 38px;
+    padding: 0 13px;
+    border: 0;
+    color: #94a3b8;
+    background: transparent;
+    font-weight: 900;
+}
+
+.asset-chart-segment button.active {
+    color: #020617;
+    background: #38bdf8;
+}
+
+.asset-line-chart {
+    position: relative;
+    overflow: hidden;
+    height: 320px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 22px;
+    background:
+            linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+            rgba(2, 6, 23, 0.24);
+    background-size: 100% 25%, 10% 100%;
+}
+
+.asset-line-chart svg {
+    width: 100%;
+    height: 100%;
+}
+
+.asset-line-chart-line {
+    fill: none;
+    stroke: #38bdf8;
+    stroke-width: 5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.28));
+}
+
+.asset-line-chart-area {
+    fill: url("#lineChartGradient");
+    stroke: none;
+}
+
+.asset-line-chart-labels {
+    position: absolute;
+    inset: 16px 16px auto auto;
+    display: grid;
+    gap: 6px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 900;
+    text-align: right;
 }
 
 .asset-candle-strip {
@@ -118,12 +190,21 @@
     background: rgba(2, 6, 23, 0.24);
 }
 
+.asset-candle-strip-large {
+    grid-template-columns: repeat(auto-fit, minmax(18px, 1fr));
+    min-height: 320px;
+}
+
 .asset-candle-bar {
     position: relative;
     display: grid;
     justify-items: center;
     min-height: 220px;
     padding-bottom: 28px;
+}
+
+.asset-candle-strip-large .asset-candle-bar {
+    min-height: 280px;
 }
 
 .asset-candle-wick {
@@ -138,6 +219,10 @@
     position: absolute;
     width: 18px;
     border-radius: 999px;
+}
+
+.asset-candle-strip-large .asset-candle-body {
+    width: 14px;
 }
 
 .candle-up {
@@ -242,10 +327,6 @@
 }
 
 .asset-risk-score h3 {
-    margin-bottom: 8px;
-}
-
-.asset-risk-score p {
     margin-bottom: 0;
 }
 
@@ -290,11 +371,6 @@
     color: #f8fafc;
     font-size: 18px;
     letter-spacing: -0.04em;
-}
-
-.asset-risk-factor p {
-    margin-bottom: 0;
-    font-size: 13px;
 }
 
 .asset-ai-summary {
@@ -351,6 +427,14 @@
 }
 
 @media (max-width: 860px) {
+    .asset-chart-header {
+        display: grid;
+    }
+
+    .asset-chart-controls {
+        justify-content: flex-start;
+    }
+
     .asset-candle-strip {
         grid-template-columns: repeat(5, minmax(0, 1fr));
     }
@@ -382,5 +466,9 @@
 
     .asset-candle-strip {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .asset-candle-strip-large {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }

@@ -610,3 +610,14 @@ p {
         font-size: 30px;
     }
 }
+
+.page-header > div > p:not(.eyebrow),
+.panel-header p,
+.asset-risk-factor p,
+.compare-metric-row p,
+.compare-summary-main p,
+.compare-summary-points p,
+.portfolio-line-title span,
+.asset-details-hero-main p {
+    display: none !important;
+}
