@@ -1,5 +1,16 @@
-export type AssetType = "STOCK" | "CRYPTO";
+export type AssetType =
+    | "STOCK"
+    | "BOND"
+    | "ETF"
+    | "INDEX"
+    | "CURRENCY"
+    | "CRYPTO";
+
 export type Currency = "RUB" | "USD";
+
+export type MarketDataSource = "MOEX" | "BINANCE" | "DEMO";
+
+export type ProviderStatus = "AVAILABLE" | "DEGRADED" | "UNAVAILABLE";
 
 export type Asset = {
     id: string;
@@ -8,7 +19,7 @@ export type Asset = {
     assetType: AssetType;
     exchange: string;
     currency: Currency;
-    isin?: string;
+    isin?: string | null;
     active: boolean;
 };
 
@@ -17,7 +28,7 @@ export type MarketPrice = {
     name: string;
     price: number;
     volume: number;
-    source: "MOEX" | "BINANCE" | "DEMO";
+    source: MarketDataSource;
     timestamp: string;
 };
 
@@ -28,7 +39,7 @@ export type Candle = {
     low: number;
     close: number;
     volume: number;
-    source: "MOEX" | "BINANCE" | "DEMO";
+    source: MarketDataSource;
 };
 
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
@@ -140,4 +151,10 @@ export type AppSettings = {
     yandexGptFolderId: string;
     yandexGptModel: string;
     yandexGptEnabled: boolean;
+};
+
+export type StaticAppBackup = {
+    version: number;
+    exportedAt: string;
+    values: Record<string, unknown>;
 };
