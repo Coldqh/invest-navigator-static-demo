@@ -1,0 +1,294 @@
+.portfolio-account-panel {
+    background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 22rem),
+        rgba(15, 23, 42, 0.68);
+}
+
+.portfolio-buy-panel {
+    background:
+        radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 22rem),
+        rgba(15, 23, 42, 0.68);
+}
+
+.portfolio-account-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 0.7fr)) minmax(320px, 1.6fr);
+    gap: 14px;
+}
+
+.portfolio-account-card {
+    display: grid;
+    gap: 8px;
+    padding: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 22px;
+    background: rgba(2, 6, 23, 0.32);
+}
+
+.portfolio-account-card span {
+    color: #93c5fd;
+    font-size: 12px;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.portfolio-account-card strong {
+    color: #f8fafc;
+    font-size: 30px;
+    letter-spacing: -0.05em;
+}
+
+.portfolio-account-form,
+.portfolio-buy-form {
+    display: grid;
+    gap: 12px;
+    padding: 20px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 22px;
+    background: rgba(2, 6, 23, 0.28);
+}
+
+.portfolio-account-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+}
+
+.portfolio-buy-form {
+    grid-template-columns: 1.2fr 0.8fr auto;
+    align-items: end;
+}
+
+.portfolio-account-form label,
+.portfolio-buy-form label {
+    display: grid;
+    gap: 8px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.portfolio-account-form input,
+.portfolio-buy-form input,
+.portfolio-line-actions input {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 13px;
+    padding: 0 12px;
+    background: rgba(15, 23, 42, 0.72);
+    color: #e5edf7;
+    outline: none;
+    font-weight: 800;
+}
+
+.portfolio-simulator-holdings {
+    display: grid;
+    gap: 10px;
+}
+
+.portfolio-holding-group {
+    display: grid;
+    gap: 8px;
+}
+
+.portfolio-line {
+    display: grid;
+    grid-template-columns: minmax(210px, 0.95fr) minmax(520px, 2fr) minmax(210px, auto);
+    align-items: center;
+    gap: 16px;
+    min-height: 66px;
+    padding: 10px 14px;
+    border: 1px solid rgba(148, 163, 184, 0.13);
+    border-radius: 17px;
+    background:
+        linear-gradient(90deg, rgba(56, 189, 248, 0.07), rgba(15, 23, 42, 0.22)),
+        rgba(2, 6, 23, 0.24);
+}
+
+.portfolio-holding-line {
+    min-height: 76px;
+    border-color: rgba(56, 189, 248, 0.18);
+}
+
+.portfolio-lot-list {
+    display: grid;
+    gap: 7px;
+    padding-left: 18px;
+}
+
+.portfolio-lot-line {
+    min-height: 58px;
+    background:
+        linear-gradient(90deg, rgba(168, 85, 247, 0.06), rgba(15, 23, 42, 0.16)),
+        rgba(2, 6, 23, 0.18);
+}
+
+.portfolio-line-title {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.portfolio-line-title strong {
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 950;
+    letter-spacing: -0.065em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portfolio-lot-line .portfolio-line-title strong {
+    font-size: 26px;
+}
+
+.portfolio-line-title span {
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 750;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portfolio-line-metrics {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.portfolio-lot-line .portfolio-line-metrics {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.portfolio-inline-metric {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.portfolio-inline-metric span {
+    overflow: hidden;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+}
+
+.portfolio-inline-metric strong {
+    overflow: hidden;
+    color: #e2e8f0;
+    font-size: 13px;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.portfolio-line-actions {
+    display: grid;
+    grid-template-columns: auto auto;
+    justify-content: end;
+    gap: 8px;
+}
+
+.portfolio-line-sell-actions {
+    grid-template-columns: minmax(90px, 110px) auto;
+}
+
+.portfolio-transaction-list {
+    display: grid;
+    gap: 12px;
+}
+
+.portfolio-transaction-card {
+    display: grid;
+    grid-template-columns: 110px 1.2fr repeat(4, minmax(110px, 1fr));
+    gap: 12px;
+    align-items: center;
+    padding: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 18px;
+    background: rgba(2, 6, 23, 0.3);
+}
+
+.portfolio-transaction-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 950;
+    text-transform: uppercase;
+}
+
+.transaction-buy {
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.16);
+    border: 1px solid rgba(34, 197, 94, 0.28);
+}
+
+.transaction-sell {
+    color: #fecaca;
+    background: rgba(239, 68, 68, 0.14);
+    border: 1px solid rgba(239, 68, 68, 0.26);
+}
+
+.positive-value {
+    color: #86efac !important;
+}
+
+.negative-value {
+    color: #fecaca !important;
+}
+
+@media (max-width: 1380px) {
+    .portfolio-line {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-line-actions {
+        justify-content: start;
+    }
+}
+
+@media (max-width: 1180px) {
+    .portfolio-account-grid,
+    .portfolio-account-form,
+    .portfolio-buy-form,
+    .portfolio-transaction-card {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .portfolio-line-metrics,
+    .portfolio-lot-line .portfolio-line-metrics {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .portfolio-lot-list {
+        padding-left: 0;
+    }
+}
+
+@media (max-width: 760px) {
+    .portfolio-account-grid,
+    .portfolio-account-form,
+    .portfolio-buy-form,
+    .portfolio-line-metrics,
+    .portfolio-lot-line .portfolio-line-metrics,
+    .portfolio-line-actions,
+    .portfolio-line-sell-actions,
+    .portfolio-transaction-card {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-line-title strong {
+        font-size: 26px;
+    }
+}
