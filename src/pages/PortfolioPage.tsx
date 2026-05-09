@@ -2,21 +2,26 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getAssets } from "../services/assetsService";
 import {
     buyAsset,
+    getClosedTrades,
     getSimulator,
     resetPortfolio,
     seedDemoPortfolio,
     sellLot,
-    updateAccount
+    updateAccount,
+    type ClosedTrade
 } from "../services/browserPortfolioService";
 import { generatePortfolioReport, type AiReport } from "../services/browserAiService";
-import type { PortfolioLotView, PortfolioSimulator } from "../types/domain";
+import type { PortfolioLotView, PortfolioSimulator, PortfolioTransaction } from "../types/domain";
 import { LoadingBlock } from "../components/LoadingBlock";
 
 export function PortfolioPage() {
+    const assets = useMemo(() => getAssets(), []);
+
     const [simulator, setSimulator] = useState<PortfolioSimulator | null>(null);
+    const [closedTrades, setClosedTrades] = useState<ClosedTrade[]>([]);
     const [rubBalance, setRubBalance] = useState("");
     const [usdBalance, setUsdBalance] = useState("");
-    const [buyTicker, setBuyTicker] = useState("SBER");
+    const [buyTicker, setBuyTicker] = useState(assets[0]?.ticker ?? "SBER");
     const [buyQuantity, setBuyQuantity] = useState("");
     const [expandedTickers, setExpandedTickers] = useState<Record<string, boolean>>({});
     const [sellQuantities, setSellQuantities] = useState<Record<string, string>>({});
@@ -24,24 +29,18 @@ export function PortfolioPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const assets = getAssets();
-
     useEffect(() => {
         refresh();
     }, []);
 
-    const filteredAssets = useMemo(() => {
-        const query = buyTicker.trim().toLowerCase();
-
-        if (!query) return assets;
-
-        return assets.filter((asset) => asset.ticker.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query));
-    }, [assets, buyTicker]);
-
     async function refresh() {
         setIsLoading(true);
+
         const loadedSimulator = await getSimulator();
+        const loadedClosedTrades = getClosedTrades();
+
         setSimulator(loadedSimulator);
+        setClosedTrades(loadedClosedTrades);
         setRubBalance(String(loadedSimulator.account.rubBalance));
         setUsdBalance(String(loadedSimulator.account.usdBalance));
         setIsLoading(false);
@@ -83,12 +82,16 @@ export function PortfolioPage() {
     }
 
     async function handleAiReport() {
-        if (!simulator) return;
+        if (!simulator) {
+            return;
+        }
+
         setReport(await generatePortfolioReport(simulator));
     }
 
     async function handleSeedDemo() {
         seedDemoPortfolio();
+        setReport(null);
         await refresh();
     }
 
@@ -98,12 +101,40 @@ export function PortfolioPage() {
         await refresh();
     }
 
+    const realizedStats = useMemo(() => {
+        const rubTrades = closedTrades.filter((trade) => trade.currency === "RUB");
+        const usdTrades = closedTrades.filter((trade) => trade.currency === "USD");
+
+        const bestTrade = closedTrades.length === 0
+            ? null
+            : [...closedTrades].sort((first, second) => second.realizedProfitLossPercent - first.realizedProfitLossPercent)[0];
+
+        const worstTrade = closedTrades.length === 0
+            ? null
+            : [...closedTrades].sort((first, second) => first.realizedProfitLossPercent - second.realizedProfitLossPercent)[0];
+
+        return {
+            rubRealized: rubTrades.reduce((sum, trade) => sum + trade.realizedProfitLoss, 0),
+            usdRealized: usdTrades.reduce((sum, trade) => sum + trade.realizedProfitLoss, 0),
+            bestTrade,
+            worstTrade
+        };
+    }, [closedTrades]);
+
+    const recentTransactions = useMemo(() => {
+        if (!simulator) {
+            return [];
+        }
+
+        return simulator.transactions.slice(0, 8);
+    }, [simulator]);
+
     if (isLoading || !simulator) {
         return <LoadingBlock text="Загружаем портфель..." />;
     }
 
     return (
-        <section className="page">
+        <section className="page portfolio-page">
             <div className="page-header">
                 <div>
                     <p className="eyebrow">Портфель</p>
@@ -111,84 +142,128 @@ export function PortfolioPage() {
                 </div>
 
                 <div className="hero-actions">
-                    <button type="button" className="ghost-button" onClick={handleSeedDemo}>Демо-данные</button>
-                    <button type="button" className="ghost-button danger-button" onClick={handleReset}>Сбросить</button>
-                    <button type="button" className="primary-button" onClick={handleAiReport}>AI-анализ</button>
+                    <button type="button" className="ghost-button" onClick={handleSeedDemo}>
+                        Демо-данные
+                    </button>
+
+                    <button type="button" className="ghost-button danger-button" onClick={handleReset}>
+                        Сбросить
+                    </button>
+
+                    <button type="button" className="primary-button" onClick={handleAiReport}>
+                        AI-анализ
+                    </button>
                 </div>
             </div>
 
             {error && <div className="error-block">{error}</div>}
 
-            <article className="panel portfolio-account-panel">
-                <div className="panel-header">
-                    <div>
-                        <h2>Счёт</h2>
-                        <p>Баланс хранится в браузере.</p>
-                    </div>
-                </div>
-
-                <div className="portfolio-account-grid">
-                    <div className="portfolio-account-card">
-                        <span>RUB</span>
-                        <strong>{formatMoney(simulator.account.rubBalance, "RUB")}</strong>
-                    </div>
-                    <div className="portfolio-account-card">
-                        <span>USD</span>
-                        <strong>{formatMoney(simulator.account.usdBalance, "USD")}</strong>
+            <div className="portfolio-top-grid">
+                <article className="panel portfolio-account-panel">
+                    <div className="panel-header">
+                        <div>
+                            <h2>Счёт</h2>
+                        </div>
                     </div>
 
-                    <form className="portfolio-account-form" onSubmit={handleSaveAccount}>
+                    <div className="portfolio-account-grid">
+                        <AccountCard label="RUB" value={formatMoney(simulator.account.rubBalance, "RUB")} />
+                        <AccountCard label="USD" value={formatMoney(simulator.account.usdBalance, "USD")} />
+
+                        <form className="portfolio-account-form" onSubmit={handleSaveAccount}>
+                            <label>
+                                RUB баланс
+                                <input
+                                    value={rubBalance}
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    onChange={(event) => setRubBalance(event.target.value)}
+                                />
+                            </label>
+
+                            <label>
+                                USD баланс
+                                <input
+                                    value={usdBalance}
+                                    type="number"
+                                    min="0"
+                                    step="0.0001"
+                                    onChange={(event) => setUsdBalance(event.target.value)}
+                                />
+                            </label>
+
+                            <button type="submit" className="primary-button">
+                                Сохранить
+                            </button>
+                        </form>
+                    </div>
+                </article>
+
+                <article className="panel portfolio-buy-panel">
+                    <div className="panel-header">
+                        <div>
+                            <h2>Покупка</h2>
+                        </div>
+                    </div>
+
+                    <form className="portfolio-buy-form" onSubmit={handleBuy}>
                         <label>
-                            RUB баланс
-                            <input value={rubBalance} type="number" min="0" step="0.0001" onChange={(event) => setRubBalance(event.target.value)} />
+                            Актив
+                            <select
+                                value={buyTicker}
+                                onChange={(event) => setBuyTicker(event.target.value)}
+                            >
+                                {assets.map((asset) => (
+                                    <option key={asset.id} value={asset.ticker}>
+                                        {asset.ticker} — {asset.name}
+                                    </option>
+                                ))}
+                            </select>
                         </label>
+
                         <label>
-                            USD баланс
-                            <input value={usdBalance} type="number" min="0" step="0.0001" onChange={(event) => setUsdBalance(event.target.value)} />
+                            Количество
+                            <input
+                                value={buyQuantity}
+                                type="number"
+                                min="0"
+                                step="0.0001"
+                                onChange={(event) => setBuyQuantity(event.target.value)}
+                            />
                         </label>
-                        <button type="submit" className="primary-button">Сохранить счёт</button>
+
+                        <button type="submit" className="primary-button">
+                            Купить
+                        </button>
                     </form>
-                </div>
-            </article>
+                </article>
+            </div>
 
-            <article className="panel portfolio-buy-panel">
-                <div className="panel-header">
-                    <div>
-                        <h2>Покупка</h2>
-                        <p>Цена берётся из браузерного market data provider.</p>
-                    </div>
-                </div>
-
-                <form className="portfolio-buy-form" onSubmit={handleBuy}>
-                    <label>
-                        Тикер
-                        <input value={buyTicker} list="portfolio-buy-assets" onChange={(event) => setBuyTicker(event.target.value)} />
-                        <datalist id="portfolio-buy-assets">
-                            {filteredAssets.map((asset) => <option key={asset.id} value={asset.ticker}>{asset.name}</option>)}
-                        </datalist>
-                    </label>
-                    <label>
-                        Количество
-                        <input value={buyQuantity} type="number" min="0" step="0.0001" onChange={(event) => setBuyQuantity(event.target.value)} />
-                    </label>
-                    <button type="submit" className="primary-button">Купить</button>
-                </form>
-            </article>
-
-            <article className="panel">
-                <div className="panel-header">
-                    <div>
-                        <h2>Сводка</h2>
-                    </div>
-                </div>
-
-                <div className="summary-grid">
-                    <Summary label="Активов" value={String(simulator.assetsCount)} />
-                    <Summary label="Лотов" value={String(simulator.lotsCount)} />
-                    <Summary label="RUB PnL" value={formatMoney(simulator.totalRubProfitLoss, "RUB")} />
-                    <Summary label="USD PnL" value={formatMoney(simulator.totalUsdProfitLoss, "USD")} />
-                </div>
-            </article>
+            <div className="summary-grid portfolio-summary-grid">
+                <Summary label="Активов" value={String(simulator.assetsCount)} />
+                <Summary label="Лотов" value={String(simulator.lotsCount)} />
+                <Summary
+                    label="RUB Unrealized"
+                    value={formatMoney(simulator.totalRubProfitLoss, "RUB")}
+                    className={simulator.totalRubProfitLoss >= 0 ? "positive-value" : "negative-value"}
+                />
+                <Summary
+                    label="USD Unrealized"
+                    value={formatMoney(simulator.totalUsdProfitLoss, "USD")}
+                    className={simulator.totalUsdProfitLoss >= 0 ? "positive-value" : "negative-value"}
+                />
+                <Summary
+                    label="RUB Realized"
+                    value={formatMoney(realizedStats.rubRealized, "RUB")}
+                    className={realizedStats.rubRealized >= 0 ? "positive-value" : "negative-value"}
+                />
+                <Summary
+                    label="USD Realized"
+                    value={formatMoney(realizedStats.usdRealized, "USD")}
+                    className={realizedStats.usdRealized >= 0 ? "positive-value" : "negative-value"}
+                />
+            </div>
 
             <article className="panel">
                 <div className="panel-header">
@@ -206,7 +281,7 @@ export function PortfolioPage() {
                                 <div className="portfolio-line portfolio-holding-line">
                                     <div className="portfolio-line-title">
                                         <strong>{formatNumber(holding.totalQuantity)} {holding.ticker}</strong>
-                                        <span>{holding.name} · {holding.lots.length} лот(ов) · {holding.holdingDays} дн.</span>
+                                        <span>{holding.name}</span>
                                     </div>
 
                                     <div className="portfolio-line-metrics">
@@ -223,11 +298,21 @@ export function PortfolioPage() {
                                     </div>
 
                                     <div className="portfolio-line-actions">
-                                        <button type="button" className="ghost-button" onClick={() => setBuyTicker(holding.ticker)}>Купить</button>
+                                        <button
+                                            type="button"
+                                            className="ghost-button"
+                                            onClick={() => setBuyTicker(holding.ticker)}
+                                        >
+                                            Купить
+                                        </button>
+
                                         <button
                                             type="button"
                                             className="primary-button"
-                                            onClick={() => setExpandedTickers((current) => ({ ...current, [holding.ticker]: !current[holding.ticker] }))}
+                                            onClick={() => setExpandedTickers((current) => ({
+                                                ...current,
+                                                [holding.ticker]: !current[holding.ticker]
+                                            }))}
                                         >
                                             {expandedTickers[holding.ticker] ? "Свернуть" : "Развернуть"}
                                         </button>
@@ -240,7 +325,7 @@ export function PortfolioPage() {
                                             <div className="portfolio-line portfolio-lot-line" key={lot.id}>
                                                 <div className="portfolio-line-title">
                                                     <strong>{formatNumber(lot.remainingQuantity)} {lot.ticker}</strong>
-                                                    <span>{lot.name} · от {formatDateOnly(lot.openedAt)} · {lot.holdingDays} дн.</span>
+                                                    <span>от {formatDateOnly(lot.openedAt)}</span>
                                                 </div>
 
                                                 <div className="portfolio-line-metrics">
@@ -263,9 +348,19 @@ export function PortfolioPage() {
                                                         step="0.0001"
                                                         value={sellQuantities[lot.id] ?? ""}
                                                         placeholder="Кол-во"
-                                                        onChange={(event) => setSellQuantities((current) => ({ ...current, [lot.id]: event.target.value }))}
+                                                        onChange={(event) => setSellQuantities((current) => ({
+                                                            ...current,
+                                                            [lot.id]: event.target.value
+                                                        }))}
                                                     />
-                                                    <button type="button" className="ghost-button danger-button" onClick={() => handleSell(lot)}>Продать</button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="ghost-button danger-button"
+                                                        onClick={() => handleSell(lot)}
+                                                    >
+                                                        Продать
+                                                    </button>
                                                 </div>
                                             </div>
                                         ))}
@@ -277,55 +372,98 @@ export function PortfolioPage() {
                 )}
             </article>
 
-            <article className="panel">
-                <div className="panel-header">
-                    <div>
-                        <h2>Журнал операций</h2>
-                    </div>
-                </div>
-
-                <div className="portfolio-transaction-list">
-                    {simulator.transactions.map((transaction) => (
-                        <div className="portfolio-transaction-card" key={transaction.id}>
-                            <span className={transaction.transactionType === "BUY" ? "transaction-buy portfolio-transaction-type" : "transaction-sell portfolio-transaction-type"}>
-                                {transaction.transactionType === "BUY" ? "Покупка" : "Продажа"}
-                            </span>
-                            <strong>{transaction.ticker}</strong>
-                            <InlineMetric label="Кол-во" value={formatNumber(transaction.quantity)} />
-                            <InlineMetric label="Цена" value={formatMoney(transaction.price, transaction.currency)} />
-                            <InlineMetric label="Сумма" value={formatMoney(transaction.totalAmount, transaction.currency)} />
-                            <InlineMetric label="Дата" value={formatDateOnly(transaction.executedAt)} />
-                        </div>
-                    ))}
-                </div>
-            </article>
-
-            {report && (
+            <div className="portfolio-bottom-grid">
                 <article className="panel">
                     <div className="panel-header">
                         <div>
-                            <h2>AI-анализ</h2>
-                            <p>Провайдер: {report.provider}</p>
+                            <h2>Закрытые сделки</h2>
                         </div>
                     </div>
+
+                    {closedTrades.length === 0 ? (
+                        <div className="empty-state">Закрытых сделок нет</div>
+                    ) : (
+                        <div className="closed-trade-list">
+                            {closedTrades.slice(0, 8).map((trade) => (
+                                <ClosedTradeCard key={trade.id} trade={trade} />
+                            ))}
+                        </div>
+                    )}
+                </article>
+
+                <article className="panel">
+                    <div className="panel-header">
+                        <div>
+                            <h2>Лучший / худший трейд</h2>
+                        </div>
+                    </div>
+
+                    <div className="best-worst-grid">
+                        <TradeSpotlight title="Лучший" trade={realizedStats.bestTrade} />
+                        <TradeSpotlight title="Худший" trade={realizedStats.worstTrade} />
+                    </div>
+                </article>
+            </div>
+
+            <article className="panel">
+                <div className="panel-header">
+                    <div>
+                        <h2>Последние операции</h2>
+                    </div>
+                </div>
+
+                {recentTransactions.length === 0 ? (
+                    <div className="empty-state">Операций пока нет</div>
+                ) : (
+                    <div className="portfolio-transaction-list">
+                        {recentTransactions.map((transaction) => (
+                            <TransactionCard key={transaction.id} transaction={transaction} />
+                        ))}
+                    </div>
+                )}
+            </article>
+
+            {report && (
+                <article className="panel portfolio-ai-panel">
+                    <div className="panel-header">
+                        <div>
+                            <h2>AI-анализ</h2>
+                        </div>
+                    </div>
+
                     <p>{report.summary}</p>
-                    <small>{report.disclaimer}</small>
+                    <small>{report.provider} · {report.disclaimer}</small>
                 </article>
             )}
         </section>
     );
 }
 
-type SummaryProps = {
+type AccountCardProps = {
     label: string;
     value: string;
 };
 
-function Summary({ label, value }: SummaryProps) {
+function AccountCard({ label, value }: AccountCardProps) {
+    return (
+        <div className="portfolio-account-card">
+            <span>{label}</span>
+            <strong>{value}</strong>
+        </div>
+    );
+}
+
+type SummaryProps = {
+    label: string;
+    value: string;
+    className?: string;
+};
+
+function Summary({ label, value, className }: SummaryProps) {
     return (
         <div className="summary-card">
             <span>{label}</span>
-            <strong>{value}</strong>
+            <strong className={className}>{value}</strong>
         </div>
     );
 }
@@ -345,19 +483,91 @@ function InlineMetric({ label, value, className }: InlineMetricProps) {
     );
 }
 
+type ClosedTradeCardProps = {
+    trade: ClosedTrade;
+};
+
+function ClosedTradeCard({ trade }: ClosedTradeCardProps) {
+    return (
+        <div className="closed-trade-card">
+            <strong>{trade.ticker}</strong>
+            <InlineMetric label="Кол-во" value={formatNumber(trade.quantity)} />
+            <InlineMetric label="Вход" value={formatMoney(trade.buyPrice, trade.currency)} />
+            <InlineMetric label="Выход" value={formatMoney(trade.sellPrice, trade.currency)} />
+            <InlineMetric
+                label="PnL"
+                value={`${formatMoney(trade.realizedProfitLoss, trade.currency)} · ${formatPercent(trade.realizedProfitLossPercent)}`}
+                className={trade.realizedProfitLoss >= 0 ? "positive-value" : "negative-value"}
+            />
+            <InlineMetric label="Дата" value={formatDateOnly(trade.closedAt)} />
+        </div>
+    );
+}
+
+type TradeSpotlightProps = {
+    title: string;
+    trade: ClosedTrade | null;
+};
+
+function TradeSpotlight({ title, trade }: TradeSpotlightProps) {
+    if (!trade) {
+        return (
+            <div className="trade-spotlight-card">
+                <span>{title}</span>
+                <strong>—</strong>
+            </div>
+        );
+    }
+
+    return (
+        <div className="trade-spotlight-card">
+            <span>{title}</span>
+            <strong>{trade.ticker}</strong>
+            <em className={trade.realizedProfitLoss >= 0 ? "positive-value" : "negative-value"}>
+                {formatMoney(trade.realizedProfitLoss, trade.currency)} · {formatPercent(trade.realizedProfitLossPercent)}
+            </em>
+        </div>
+    );
+}
+
+type TransactionCardProps = {
+    transaction: PortfolioTransaction;
+};
+
+function TransactionCard({ transaction }: TransactionCardProps) {
+    return (
+        <div className="portfolio-transaction-card">
+            <span className={transaction.transactionType === "BUY" ? "transaction-buy portfolio-transaction-type" : "transaction-sell portfolio-transaction-type"}>
+                {transaction.transactionType === "BUY" ? "Покупка" : "Продажа"}
+            </span>
+
+            <strong>{transaction.ticker}</strong>
+            <InlineMetric label="Кол-во" value={formatNumber(transaction.quantity)} />
+            <InlineMetric label="Цена" value={formatMoney(transaction.price, transaction.currency)} />
+            <InlineMetric label="Сумма" value={formatMoney(transaction.totalAmount, transaction.currency)} />
+            <InlineMetric label="Дата" value={formatDateOnly(transaction.executedAt)} />
+        </div>
+    );
+}
+
 function formatNumber(value: number): string {
-    return new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 8 }).format(value);
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 8
+    }).format(value);
 }
 
 function formatMoney(value: number, currency: string): string {
-    return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 4 }).format(value)} ${currency}`;
+    return `${new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 4
+    }).format(value)} ${currency}`;
 }
 
 function formatPercent(value: number): string {
-    return `${new Intl.NumberFormat("ru-RU", { maximumFractionDigits: 2 }).format(value)}%`;
+    return `${new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 2
+    }).format(value)}%`;
 }
 
 function formatDateOnly(value: string): string {
-    const date = new Date(value);
-    return date.toLocaleDateString("ru-RU");
+    return new Date(value).toLocaleDateString("ru-RU");
 }

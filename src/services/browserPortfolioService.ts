@@ -1,8 +1,9 @@
 import { getAsset, getAssets } from "./assetsService";
-import { getMarketPrice } from "./browserMarketDataService";
+import { getMarketPrice } from "./marketDataService";
 import { readStorage, writeStorage } from "./storageService";
 import type {
     CashAccount,
+    Currency,
     PortfolioHoldingView,
     PortfolioLot,
     PortfolioLotView,
@@ -13,11 +14,30 @@ import type {
 const ACCOUNT_KEY = "invest.navigator.static.account";
 const LOTS_KEY = "invest.navigator.static.lots";
 const TRANSACTIONS_KEY = "invest.navigator.static.transactions";
+const CLOSED_TRADES_KEY = "invest.navigator.static.closedTrades";
 
 const DEFAULT_ACCOUNT: CashAccount = {
     rubBalance: 0,
     usdBalance: 0,
     updatedAt: new Date().toISOString()
+};
+
+export type ClosedTrade = {
+    id: string;
+    lotId: string;
+    ticker: string;
+    name: string;
+    currency: Currency;
+    quantity: number;
+    buyPrice: number;
+    sellPrice: number;
+    investedAmount: number;
+    sellAmount: number;
+    realizedProfitLoss: number;
+    realizedProfitLossPercent: number;
+    openedAt: string;
+    closedAt: string;
+    holdingDays: number;
 };
 
 export function getAccount(): CashAccount {
@@ -26,7 +46,8 @@ export function getAccount(): CashAccount {
 
 export function updateAccount(nextAccount: Omit<CashAccount, "updatedAt">): CashAccount {
     const account: CashAccount = {
-        ...nextAccount,
+        rubBalance: normalizeMoney(nextAccount.rubBalance),
+        usdBalance: normalizeMoney(nextAccount.usdBalance),
         updatedAt: new Date().toISOString()
     };
 
@@ -41,6 +62,10 @@ export function getLots(): PortfolioLot[] {
 
 export function getTransactions(): PortfolioTransaction[] {
     return readStorage<PortfolioTransaction[]>(TRANSACTIONS_KEY, []);
+}
+
+export function getClosedTrades(): ClosedTrade[] {
+    return readStorage<ClosedTrade[]>(CLOSED_TRADES_KEY, []);
 }
 
 export async function getSimulator(): Promise<PortfolioSimulator> {
@@ -73,10 +98,11 @@ export async function getSimulator(): Promise<PortfolioSimulator> {
 }
 
 export async function buyAsset(ticker: string, quantity: number): Promise<PortfolioSimulator> {
-    const asset = getAsset(ticker);
+    const normalizedTicker = ticker.trim().toUpperCase();
+    const asset = getAsset(normalizedTicker);
 
     if (!asset) {
-        throw new Error(`Актив не найден: ${ticker}`);
+        throw new Error(`Актив не найден: ${normalizedTicker}`);
     }
 
     if (!Number.isFinite(quantity) || quantity <= 0) {
@@ -208,8 +234,32 @@ export async function sellLot(lotId: string, quantity: number): Promise<Portfoli
         note: "Static demo sell"
     };
 
+    const investedAmount = quantity * lot.buyPrice;
+    const realizedProfitLoss = totalAmount - investedAmount;
+
+    const closedTrade: ClosedTrade = {
+        id: crypto.randomUUID(),
+        lotId: lot.id,
+        ticker: lot.ticker,
+        name: lot.name,
+        currency: lot.currency,
+        quantity,
+        buyPrice: lot.buyPrice,
+        sellPrice: price.price,
+        investedAmount,
+        sellAmount: totalAmount,
+        realizedProfitLoss,
+        realizedProfitLossPercent: investedAmount === 0
+            ? 0
+            : (realizedProfitLoss / investedAmount) * 100,
+        openedAt: lot.openedAt,
+        closedAt: now,
+        holdingDays: calculateHoldingDays(lot.openedAt, now)
+    };
+
     writeStorage(LOTS_KEY, updatedLots);
     writeStorage(TRANSACTIONS_KEY, [transaction, ...getTransactions()]);
+    writeStorage(CLOSED_TRADES_KEY, [closedTrade, ...getClosedTrades()]);
 
     return getSimulator();
 }
@@ -218,6 +268,109 @@ export function resetPortfolio(): void {
     writeStorage(ACCOUNT_KEY, DEFAULT_ACCOUNT);
     writeStorage(LOTS_KEY, []);
     writeStorage(TRANSACTIONS_KEY, []);
+    writeStorage(CLOSED_TRADES_KEY, []);
+}
+
+export function seedDemoPortfolio(): void {
+    const assets = getAssets();
+    const sber = assets.find((asset) => asset.ticker === "SBER");
+    const btc = assets.find((asset) => asset.ticker === "BTCUSDT");
+    const lkoh = assets.find((asset) => asset.ticker === "LKOH");
+
+    updateAccount({
+        rubBalance: 100000,
+        usdBalance: 10000
+    });
+
+    const now = new Date();
+
+    const demoLots: PortfolioLot[] = [];
+
+    if (sber) {
+        demoLots.push({
+            id: crypto.randomUUID(),
+            assetId: sber.id,
+            ticker: sber.ticker,
+            name: sber.name,
+            assetType: sber.assetType,
+            exchange: sber.exchange,
+            currency: sber.currency,
+            originalQuantity: 20,
+            remainingQuantity: 20,
+            buyPrice: 280,
+            buyTotalAmount: 5600,
+            buyPriceSource: "DEMO",
+            buyPriceTimestamp: now.toISOString(),
+            openedAt: new Date(now.getTime() - 19 * 86_400_000).toISOString(),
+            active: true
+        });
+    }
+
+    if (lkoh) {
+        demoLots.push({
+            id: crypto.randomUUID(),
+            assetId: lkoh.id,
+            ticker: lkoh.ticker,
+            name: lkoh.name,
+            assetType: lkoh.assetType,
+            exchange: lkoh.exchange,
+            currency: lkoh.currency,
+            originalQuantity: 2,
+            remainingQuantity: 2,
+            buyPrice: 7150,
+            buyTotalAmount: 14300,
+            buyPriceSource: "DEMO",
+            buyPriceTimestamp: now.toISOString(),
+            openedAt: new Date(now.getTime() - 11 * 86_400_000).toISOString(),
+            active: true
+        });
+    }
+
+    if (btc) {
+        demoLots.push({
+            id: crypto.randomUUID(),
+            assetId: btc.id,
+            ticker: btc.ticker,
+            name: btc.name,
+            assetType: btc.assetType,
+            exchange: btc.exchange,
+            currency: btc.currency,
+            originalQuantity: 0.05,
+            remainingQuantity: 0.05,
+            buyPrice: 65000,
+            buyTotalAmount: 3250,
+            buyPriceSource: "DEMO",
+            buyPriceTimestamp: now.toISOString(),
+            openedAt: new Date(now.getTime() - 7 * 86_400_000).toISOString(),
+            active: true
+        });
+    }
+
+    const closedTrades: ClosedTrade[] = sber
+        ? [
+            {
+                id: crypto.randomUUID(),
+                lotId: crypto.randomUUID(),
+                ticker: sber.ticker,
+                name: sber.name,
+                currency: sber.currency,
+                quantity: 5,
+                buyPrice: 250,
+                sellPrice: 290,
+                investedAmount: 1250,
+                sellAmount: 1450,
+                realizedProfitLoss: 200,
+                realizedProfitLossPercent: 16,
+                openedAt: new Date(now.getTime() - 35 * 86_400_000).toISOString(),
+                closedAt: new Date(now.getTime() - 9 * 86_400_000).toISOString(),
+                holdingDays: 26
+            }
+        ]
+        : [];
+
+    writeStorage(LOTS_KEY, demoLots);
+    writeStorage(TRANSACTIONS_KEY, []);
+    writeStorage(CLOSED_TRADES_KEY, closedTrades);
 }
 
 async function toLotView(lot: PortfolioLot): Promise<PortfolioLotView> {
@@ -278,11 +431,20 @@ function groupLots(lots: PortfolioLotView[]): PortfolioHoldingView[] {
         .sort((a, b) => b.currentValue - a.currentValue);
 }
 
-function calculateHoldingDays(openedAt: string): number {
+function calculateHoldingDays(openedAt: string, closedAt?: string): number {
     const openedDate = new Date(openedAt);
-    const diff = Date.now() - openedDate.getTime();
+    const endDate = closedAt ? new Date(closedAt) : new Date();
+    const diff = endDate.getTime() - openedDate.getTime();
 
     return Math.max(0, Math.floor(diff / 86_400_000));
+}
+
+function normalizeMoney(value: number): number {
+    if (!Number.isFinite(value) || value < 0) {
+        return 0;
+    }
+
+    return value;
 }
 
 function sum(values: number[]): number {
@@ -291,68 +453,10 @@ function sum(values: number[]): number {
 
 function sumByCurrency(
     holdings: PortfolioHoldingView[],
-    currency: "RUB" | "USD",
+    currency: Currency,
     key: "investedAmount" | "currentValue"
 ): number {
     return holdings
         .filter((holding) => holding.currency === currency)
         .reduce((total, holding) => total + holding[key], 0);
-}
-
-export function seedDemoPortfolio(): void {
-    const assets = getAssets();
-    const sber = assets.find((asset) => asset.ticker === "SBER");
-    const btc = assets.find((asset) => asset.ticker === "BTCUSDT");
-
-    updateAccount({
-        rubBalance: 100000,
-        usdBalance: 10000
-    });
-
-    const now = new Date();
-
-    const demoLots: PortfolioLot[] = [];
-
-    if (sber) {
-        demoLots.push({
-            id: crypto.randomUUID(),
-            assetId: sber.id,
-            ticker: sber.ticker,
-            name: sber.name,
-            assetType: sber.assetType,
-            exchange: sber.exchange,
-            currency: sber.currency,
-            originalQuantity: 20,
-            remainingQuantity: 20,
-            buyPrice: 280,
-            buyTotalAmount: 5600,
-            buyPriceSource: "DEMO",
-            buyPriceTimestamp: now.toISOString(),
-            openedAt: new Date(now.getTime() - 19 * 86_400_000).toISOString(),
-            active: true
-        });
-    }
-
-    if (btc) {
-        demoLots.push({
-            id: crypto.randomUUID(),
-            assetId: btc.id,
-            ticker: btc.ticker,
-            name: btc.name,
-            assetType: btc.assetType,
-            exchange: btc.exchange,
-            currency: btc.currency,
-            originalQuantity: 0.05,
-            remainingQuantity: 0.05,
-            buyPrice: 65000,
-            buyTotalAmount: 3250,
-            buyPriceSource: "DEMO",
-            buyPriceTimestamp: now.toISOString(),
-            openedAt: new Date(now.getTime() - 7 * 86_400_000).toISOString(),
-            active: true
-        });
-    }
-
-    writeStorage(LOTS_KEY, demoLots);
-    writeStorage(TRANSACTIONS_KEY, []);
 }

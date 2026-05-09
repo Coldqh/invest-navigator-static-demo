@@ -1,13 +1,23 @@
+.portfolio-page {
+    gap: 22px;
+}
+
+.portfolio-top-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+    gap: 18px;
+}
+
 .portfolio-account-panel {
     background:
-        radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 22rem),
-        rgba(15, 23, 42, 0.68);
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 22rem),
+            rgba(15, 23, 42, 0.68);
 }
 
 .portfolio-buy-panel {
     background:
-        radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 22rem),
-        rgba(15, 23, 42, 0.68);
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 22rem),
+            rgba(15, 23, 42, 0.68);
 }
 
 .portfolio-account-grid {
@@ -22,7 +32,9 @@
     padding: 20px;
     border: 1px solid rgba(148, 163, 184, 0.14);
     border-radius: 22px;
-    background: rgba(2, 6, 23, 0.32);
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 12rem),
+            rgba(2, 6, 23, 0.32);
 }
 
 .portfolio-account-card span {
@@ -69,16 +81,29 @@
 
 .portfolio-account-form input,
 .portfolio-buy-form input,
+.portfolio-buy-form select,
 .portfolio-line-actions input {
     width: 100%;
     min-height: 38px;
+    box-sizing: border-box;
     border: 1px solid rgba(148, 163, 184, 0.24);
     border-radius: 13px;
     padding: 0 12px;
     background: rgba(15, 23, 42, 0.72);
     color: #e5edf7;
     outline: none;
+    font: inherit;
     font-weight: 800;
+}
+
+.portfolio-summary-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.portfolio-summary-grid .summary-card {
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 14rem),
+            rgba(15, 23, 42, 0.62);
 }
 
 .portfolio-simulator-holdings {
@@ -101,8 +126,8 @@
     border: 1px solid rgba(148, 163, 184, 0.13);
     border-radius: 17px;
     background:
-        linear-gradient(90deg, rgba(56, 189, 248, 0.07), rgba(15, 23, 42, 0.22)),
-        rgba(2, 6, 23, 0.24);
+            linear-gradient(90deg, rgba(56, 189, 248, 0.07), rgba(15, 23, 42, 0.22)),
+            rgba(2, 6, 23, 0.24);
 }
 
 .portfolio-holding-line {
@@ -119,8 +144,8 @@
 .portfolio-lot-line {
     min-height: 58px;
     background:
-        linear-gradient(90deg, rgba(168, 85, 247, 0.06), rgba(15, 23, 42, 0.16)),
-        rgba(2, 6, 23, 0.18);
+            linear-gradient(90deg, rgba(168, 85, 247, 0.06), rgba(15, 23, 42, 0.16)),
+            rgba(2, 6, 23, 0.18);
 }
 
 .portfolio-line-title {
@@ -200,6 +225,74 @@
     grid-template-columns: minmax(90px, 110px) auto;
 }
 
+.portfolio-bottom-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+    gap: 18px;
+}
+
+.closed-trade-list {
+    display: grid;
+    gap: 10px;
+}
+
+.closed-trade-card {
+    display: grid;
+    grid-template-columns: 1fr repeat(5, minmax(100px, 0.8fr));
+    gap: 12px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 18px;
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 12rem),
+            rgba(2, 6, 23, 0.28);
+}
+
+.closed-trade-card > strong {
+    color: #f8fafc;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: -0.05em;
+}
+
+.best-worst-grid {
+    display: grid;
+    gap: 12px;
+}
+
+.trade-spotlight-card {
+    display: grid;
+    gap: 8px;
+    padding: 18px;
+    min-height: 120px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 22px;
+    background:
+            radial-gradient(circle at top left, rgba(139, 92, 246, 0.08), transparent 12rem),
+            rgba(2, 6, 23, 0.28);
+}
+
+.trade-spotlight-card span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.trade-spotlight-card strong {
+    color: #f8fafc;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.06em;
+}
+
+.trade-spotlight-card em {
+    font-style: normal;
+    font-weight: 950;
+}
+
 .portfolio-transaction-list {
     display: grid;
     gap: 12px;
@@ -214,6 +307,13 @@
     border: 1px solid rgba(148, 163, 184, 0.14);
     border-radius: 18px;
     background: rgba(2, 6, 23, 0.3);
+}
+
+.portfolio-transaction-card > strong {
+    color: #f8fafc;
+    font-size: 22px;
+    line-height: 1;
+    letter-spacing: -0.04em;
 }
 
 .portfolio-transaction-type {
@@ -240,6 +340,16 @@
     border: 1px solid rgba(239, 68, 68, 0.26);
 }
 
+.portfolio-ai-panel p {
+    color: #e2e8f0;
+    line-height: 1.65;
+}
+
+.portfolio-ai-panel small {
+    color: #64748b;
+    font-weight: 800;
+}
+
 .positive-value {
     color: #86efac !important;
 }
@@ -249,7 +359,8 @@
 }
 
 @media (max-width: 1380px) {
-    .portfolio-line {
+    .portfolio-line,
+    .closed-trade-card {
         grid-template-columns: 1fr;
     }
 
@@ -259,11 +370,17 @@
 }
 
 @media (max-width: 1180px) {
+    .portfolio-top-grid,
+    .portfolio-bottom-grid,
     .portfolio-account-grid,
     .portfolio-account-form,
     .portfolio-buy-form,
     .portfolio-transaction-card {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .portfolio-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .portfolio-line-metrics,
@@ -277,9 +394,12 @@
 }
 
 @media (max-width: 760px) {
+    .portfolio-top-grid,
+    .portfolio-bottom-grid,
     .portfolio-account-grid,
     .portfolio-account-form,
     .portfolio-buy-form,
+    .portfolio-summary-grid,
     .portfolio-line-metrics,
     .portfolio-lot-line .portfolio-line-metrics,
     .portfolio-line-actions,
