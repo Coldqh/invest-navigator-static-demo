@@ -1,81 +1,105 @@
-import { FormEvent, useEffect, useState } from "react";
-import { getSettings, updateSettings } from "../services/settingsService";
-import type { AppSettings } from "../types/domain";
+import { YANDEX_GPT_CONFIG } from "../config/yandexGptConfig";
+import {
+    clearStaticAppStorage,
+    exportStaticAppData,
+    getStaticStorageSizeBytes
+} from "../services/storageService";
 
 export function SettingsPage() {
-    const [settings, setSettings] = useState<AppSettings>(getSettings());
-    const [message, setMessage] = useState("");
+    function handleExportData() {
+        const backup = exportStaticAppData();
+        const blob = new Blob([JSON.stringify(backup, null, 2)], {
+            type: "application/json"
+        });
 
-    useEffect(() => {
-        setSettings(getSettings());
-    }, []);
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        updateSettings(settings);
-        setMessage("Настройки сохранены в браузере");
+        link.href = url;
+        link.download = `invest-navigator-static-backup-${Date.now()}.json`;
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
+
+    function handleClearData() {
+        const confirmed = window.confirm("Очистить все демо-данные в этом браузере?");
+
+        if (!confirmed) {
+            return;
+        }
+
+        clearStaticAppStorage();
+        window.location.reload();
     }
 
     return (
         <section className="page">
             <div className="page-header">
                 <div>
-                    <p className="eyebrow">Настройки</p>
-                    <h1>Static demo settings</h1>
+                    <p className="eyebrow">Диагностика</p>
+                    <h1>Static demo status</h1>
                 </div>
             </div>
-
-            {message && <div className="empty-state">{message}</div>}
 
             <article className="panel">
                 <div className="panel-header">
                     <div>
                         <h2>YandexGPT</h2>
-                        <p>Заготовка под прямое браузерное подключение. Полноценный direct client оставлен на следующий этап.</p>
+                        <p>AI подключён автоматически через встроенный демо-конфиг.</p>
                     </div>
                 </div>
 
-                <form className="settings-form" onSubmit={handleSubmit}>
-                    <label>
-                        <span>Включить YandexGPT experimental</span>
-                        <input
-                            type="checkbox"
-                            checked={settings.yandexGptEnabled}
-                            onChange={(event) => setSettings((current) => ({ ...current, yandexGptEnabled: event.target.checked }))}
-                        />
-                    </label>
+                <div className="summary-grid">
+                    <Summary label="Статус" value={YANDEX_GPT_CONFIG.enabled ? "Включён" : "Выключен"} />
+                    <Summary label="Folder ID" value={YANDEX_GPT_CONFIG.folderId} />
+                    <Summary label="Model" value={YANDEX_GPT_CONFIG.modelUri} />
+                    <Summary label="Режим" value="Frontend direct + fallback" />
+                </div>
+            </article>
 
-                    <label>
-                        API key
-                        <input
-                            value={settings.yandexGptApiKey}
-                            type="password"
-                            placeholder="Не попадает в GitHub, хранится в localStorage"
-                            onChange={(event) => setSettings((current) => ({ ...current, yandexGptApiKey: event.target.value }))}
-                        />
-                    </label>
+            <article className="panel">
+                <div className="panel-header">
+                    <div>
+                        <h2>Локальные данные</h2>
+                        <p>Счёт, лоты, сделки и прочие демо-данные хранятся в браузере.</p>
+                    </div>
+                </div>
 
-                    <label>
-                        Folder ID
-                        <input
-                            value={settings.yandexGptFolderId}
-                            placeholder="b1g..."
-                            onChange={(event) => setSettings((current) => ({ ...current, yandexGptFolderId: event.target.value }))}
-                        />
-                    </label>
+                <div className="summary-grid">
+                    <Summary
+                        label="localStorage"
+                        value={`${new Intl.NumberFormat("ru-RU").format(getStaticStorageSizeBytes())} байт`}
+                    />
+                    <Summary label="База данных" value="Не используется" />
+                    <Summary label="Backend" value="Не используется" />
+                    <Summary label="GitHub Pages" value="Активно" />
+                </div>
 
-                    <label>
-                        Model
-                        <input
-                            value={settings.yandexGptModel}
-                            placeholder="gpt://folder/yandexgpt-lite/latest"
-                            onChange={(event) => setSettings((current) => ({ ...current, yandexGptModel: event.target.value }))}
-                        />
-                    </label>
+                <div className="hero-actions">
+                    <button type="button" className="primary-button" onClick={handleExportData}>
+                        Экспорт данных
+                    </button>
 
-                    <button type="submit" className="primary-button">Сохранить</button>
-                </form>
+                    <button type="button" className="ghost-button danger-button" onClick={handleClearData}>
+                        Очистить данные
+                    </button>
+                </div>
             </article>
         </section>
+    );
+}
+
+type SummaryProps = {
+    label: string;
+    value: string;
+};
+
+function Summary({ label, value }: SummaryProps) {
+    return (
+        <div className="summary-card">
+            <span>{label}</span>
+            <strong>{value}</strong>
+        </div>
     );
 }
