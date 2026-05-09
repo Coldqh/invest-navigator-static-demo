@@ -18,6 +18,12 @@ import type {
 
 type ChartViewMode = "LINE" | "CANDLES";
 
+type LineChartDot = {
+    candle: Candle;
+    x: number;
+    y: number;
+};
+
 export function AssetDetailsPage() {
     const { ticker = "" } = useParams();
     const asset = useMemo(() => getAsset(ticker), [ticker]);
@@ -30,25 +36,35 @@ export function AssetDetailsPage() {
     const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("MONTH");
     const [chartViewMode, setChartViewMode] = useState<ChartViewMode>("LINE");
 
-    const [isLoading, setIsLoading] = useState(true);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
+    const [isChartLoading, setIsChartLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
-        loadAssetData(asset, chartPeriod);
+        loadAssetOverview(asset, chartPeriod);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [asset?.ticker, chartPeriod]);
+    }, [asset?.ticker]);
 
-    async function loadAssetData(currentAsset: Asset | null, period: ChartPeriod) {
+    useEffect(() => {
+        if (!asset || isInitialLoading) {
+            return;
+        }
+
+        loadChartOnly(asset, chartPeriod);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chartPeriod]);
+
+    async function loadAssetOverview(currentAsset: Asset | null, period: ChartPeriod) {
         if (!currentAsset) {
-            setIsLoading(false);
+            setIsInitialLoading(false);
             return;
         }
 
         try {
             setError("");
-            setIsLoading(true);
+            setIsInitialLoading(true);
 
             const [loadedPrice, loadedAnalytics, loadedCandles] = await Promise.all([
                 getMarketPrice(currentAsset.ticker),
@@ -66,7 +82,26 @@ export function AssetDetailsPage() {
                     : "Не удалось загрузить данные актива"
             );
         } finally {
-            setIsLoading(false);
+            setIsInitialLoading(false);
+        }
+    }
+
+    async function loadChartOnly(currentAsset: Asset, period: ChartPeriod) {
+        try {
+            setError("");
+            setIsChartLoading(true);
+
+            const loadedCandles = await getCandles(currentAsset.ticker, period);
+
+            setCandles(loadedCandles);
+        } catch (error: unknown) {
+            setError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось загрузить график"
+            );
+        } finally {
+            setIsChartLoading(false);
         }
     }
 
@@ -77,7 +112,7 @@ export function AssetDetailsPage() {
 
         try {
             setIsRefreshing(true);
-            await loadAssetData(asset, chartPeriod);
+            await loadAssetOverview(asset, chartPeriod);
         } finally {
             setIsRefreshing(false);
         }
@@ -121,10 +156,6 @@ export function AssetDetailsPage() {
         return sortedCandles.slice(-30);
     }, [chartPeriod, sortedCandles]);
 
-    const latestCandles = useMemo(() => {
-        return sortedCandles.slice(-10);
-    }, [sortedCandles]);
-
     const chartBounds = useMemo(() => {
         if (visibleCandles.length === 0) {
             return {
@@ -161,6 +192,30 @@ export function AssetDetailsPage() {
             .join(" ");
     }, [chartBounds.maxHigh, chartBounds.minLow, visibleCandles]);
 
+    const lineChartDots = useMemo<LineChartDot[]>(() => {
+        if (visibleCandles.length === 0) {
+            return [];
+        }
+
+        const min = chartBounds.minLow;
+        const max = chartBounds.maxHigh;
+        const range = Math.max(max - min, 1);
+
+        return visibleCandles.map((candle, index) => {
+            const x = visibleCandles.length === 1
+                ? 50
+                : (index / (visibleCandles.length - 1)) * 100;
+
+            const y = 86.67 - ((candle.close - min) / range) * 73.33;
+
+            return {
+                candle,
+                x,
+                y
+            };
+        });
+    }, [chartBounds.maxHigh, chartBounds.minLow, visibleCandles]);
+
     if (!asset) {
         return (
             <section className="page">
@@ -169,7 +224,7 @@ export function AssetDetailsPage() {
         );
     }
 
-    if (isLoading) {
+    if (isInitialLoading) {
         return <LoadingBlock text="Загружаем актив..." />;
     }
 
@@ -240,7 +295,7 @@ export function AssetDetailsPage() {
 
             {error && <div className="error-block">{error}</div>}
 
-            <div className="summary-grid">
+            <div className="summary-grid asset-summary-grid">
                 <SummaryCard
                     label="Риск"
                     value={analytics ? `${analytics.riskScore}/100` : "—"}
@@ -257,8 +312,9 @@ export function AssetDetailsPage() {
                 />
 
                 <SummaryCard
-                    label="Точек данных"
-                    value={analytics ? String(analytics.dataPoints) : "—"}
+                    label="Изменение"
+                    value={analytics ? `${isPositive ? "+" : ""}${formatPercent(analytics.priceChangePercent)}` : "—"}
+                    valueClassName={isPositive ? "positive-value" : "negative-value"}
                 />
             </div>
 
@@ -318,7 +374,7 @@ export function AssetDetailsPage() {
                 {visibleCandles.length === 0 ? (
                     <div className="empty-state">Свечи пока не загружены</div>
                 ) : (
-                    <>
+                    <div className={isChartLoading ? "asset-chart-body chart-loading" : "asset-chart-body"}>
                         {chartViewMode === "LINE" ? (
                             <div className="asset-line-chart">
                                 <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
@@ -329,7 +385,7 @@ export function AssetDetailsPage() {
                                         </linearGradient>
                                     </defs>
 
-                                    <polyline
+                                    <polygon
                                         points={`0,280 ${lineChartPoints} 1000,280`}
                                         className="asset-line-chart-area"
                                     />
@@ -340,9 +396,31 @@ export function AssetDetailsPage() {
                                     />
                                 </svg>
 
+                                <div className="asset-line-chart-points">
+                                    {lineChartDots.map((dot) => (
+                                        <div
+                                            key={dot.candle.timestamp}
+                                            className="asset-line-chart-point"
+                                            style={{
+                                                left: `${dot.x}%`,
+                                                top: `${dot.y}%`
+                                            }}
+                                        >
+                                            <div className="asset-chart-tooltip">
+                                                <strong>{formatDateTime(dot.candle.timestamp)}</strong>
+                                                <span>Open: {formatNumber(dot.candle.open)}</span>
+                                                <span>High: {formatNumber(dot.candle.high)}</span>
+                                                <span>Low: {formatNumber(dot.candle.low)}</span>
+                                                <span>Close: {formatNumber(dot.candle.close)}</span>
+                                                <em>{dot.candle.source}</em>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
                                 <div className="asset-line-chart-labels">
-                                    <span>{formatNumber(chartBounds.minLow)}</span>
                                     <span>{formatNumber(chartBounds.maxHigh)}</span>
+                                    <span>{formatNumber(chartBounds.minLow)}</span>
                                 </div>
                             </div>
                         ) : (
@@ -358,28 +436,12 @@ export function AssetDetailsPage() {
                             </div>
                         )}
 
-                        <div className="asset-candle-table">
-                            <div className="asset-candle-table-head">
-                                <span>Дата</span>
-                                <span>Open</span>
-                                <span>High</span>
-                                <span>Low</span>
-                                <span>Close</span>
-                                <span>Source</span>
+                        {isChartLoading && (
+                            <div className="asset-chart-loader">
+                                Обновляем график...
                             </div>
-
-                            {latestCandles.slice().reverse().map((candle) => (
-                                <div className="asset-candle-table-row" key={candle.timestamp}>
-                                    <span>{formatDate(candle.timestamp)}</span>
-                                    <strong>{formatNumber(candle.open)}</strong>
-                                    <strong>{formatNumber(candle.high)}</strong>
-                                    <strong>{formatNumber(candle.low)}</strong>
-                                    <strong>{formatNumber(candle.close)}</strong>
-                                    <em>{candle.source}</em>
-                                </div>
-                            ))}
-                        </div>
-                    </>
+                        )}
+                    </div>
                 )}
             </article>
 
@@ -467,13 +529,14 @@ export function AssetDetailsPage() {
 type SummaryCardProps = {
     label: string;
     value: string;
+    valueClassName?: string;
 };
 
-function SummaryCard({ label, value }: SummaryCardProps) {
+function SummaryCard({ label, value, valueClassName }: SummaryCardProps) {
     return (
         <div className="summary-card">
             <span>{label}</span>
-            <strong>{value}</strong>
+            <strong className={valueClassName}>{value}</strong>
         </div>
     );
 }
@@ -511,6 +574,15 @@ function CandleBar({ candle, minLow, maxHigh }: CandleBarProps) {
             />
 
             <span>{formatShortDate(candle.timestamp)}</span>
+
+            <div className="asset-chart-tooltip asset-candle-tooltip">
+                <strong>{formatDateTime(candle.timestamp)}</strong>
+                <span>Open: {formatNumber(candle.open)}</span>
+                <span>High: {formatNumber(candle.high)}</span>
+                <span>Low: {formatNumber(candle.low)}</span>
+                <span>Close: {formatNumber(candle.close)}</span>
+                <em>{candle.source}</em>
+            </div>
         </div>
     );
 }
