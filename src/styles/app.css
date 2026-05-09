@@ -13,7 +13,9 @@
     height: 100vh;
     padding: 24px;
     border-right: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(2, 6, 23, 0.64);
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 16rem),
+            rgba(2, 6, 23, 0.68);
     backdrop-filter: blur(18px);
 }
 
@@ -32,11 +34,13 @@
     color: #f8fafc;
     font-weight: 950;
     background: linear-gradient(135deg, #38bdf8, #8b5cf6);
+    box-shadow: 0 14px 36px rgba(56, 189, 248, 0.18);
 }
 
 .brand strong {
     display: block;
     color: #f8fafc;
+    letter-spacing: -0.03em;
 }
 
 .brand small {
@@ -50,14 +54,20 @@
 
 .nav a {
     padding: 12px 14px;
+    border: 1px solid transparent;
     border-radius: 14px;
     color: #94a3b8;
     font-weight: 850;
+    transition:
+            color 0.18s ease,
+            background 0.18s ease,
+            border-color 0.18s ease;
 }
 
 .nav a.active,
 .nav a:hover {
     color: #f8fafc;
+    border-color: rgba(56, 189, 248, 0.18);
     background: rgba(56, 189, 248, 0.12);
 }
 
@@ -76,6 +86,12 @@
     justify-content: space-between;
     gap: 16px;
     align-items: flex-start;
+}
+
+.page-header p:last-child {
+    max-width: 760px;
+    margin-top: 12px;
+    margin-bottom: 0;
 }
 
 .eyebrow {
@@ -103,8 +119,14 @@ h1 {
 }
 
 h2 {
+    margin-bottom: 6px;
     color: #f8fafc;
     letter-spacing: -0.04em;
+}
+
+h3 {
+    color: #f8fafc;
+    letter-spacing: -0.03em;
 }
 
 p {
@@ -129,6 +151,10 @@ p {
     margin-bottom: 18px;
 }
 
+.panel-header p {
+    margin-bottom: 0;
+}
+
 .hero-actions {
     display: flex;
     flex-wrap: wrap;
@@ -145,23 +171,40 @@ p {
     border-radius: 14px;
     border: 1px solid transparent;
     font-weight: 900;
+    transition:
+            transform 0.16s ease,
+            opacity 0.16s ease,
+            border-color 0.16s ease,
+            background 0.16s ease;
+}
+
+.primary-button:hover,
+.ghost-button:hover {
+    transform: translateY(-1px);
 }
 
 .primary-button {
     color: #020617;
     background: #38bdf8;
+    box-shadow: 0 14px 34px rgba(56, 189, 248, 0.16);
 }
 
 .primary-button:disabled,
 .ghost-button:disabled {
     cursor: not-allowed;
     opacity: 0.62;
+    transform: none;
 }
 
 .ghost-button {
     color: #e5edf7;
     background: rgba(15, 23, 42, 0.62);
     border-color: rgba(148, 163, 184, 0.2);
+}
+
+.ghost-button:hover {
+    border-color: rgba(56, 189, 248, 0.3);
+    background: rgba(15, 23, 42, 0.82);
 }
 
 .danger-button {
@@ -195,7 +238,9 @@ p {
     gap: 8px;
     padding: 18px;
     border-radius: 20px;
-    background: rgba(2, 6, 23, 0.3);
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.06), transparent 12rem),
+            rgba(2, 6, 23, 0.3);
     border: 1px solid rgba(148, 163, 184, 0.14);
 }
 
@@ -204,6 +249,7 @@ p {
     font-size: 12px;
     font-weight: 900;
     text-transform: uppercase;
+    letter-spacing: 0.06em;
 }
 
 .summary-card strong {
@@ -214,14 +260,28 @@ p {
 
 .search-input,
 .compare-form input,
-.settings-form input {
+.settings-form input,
+.assets-control input,
+.assets-control select {
     width: 100%;
     min-height: 44px;
+    box-sizing: border-box;
     padding: 0 14px;
     border-radius: 14px;
     border: 1px solid rgba(148, 163, 184, 0.22);
     color: #e5edf7;
     background: rgba(15, 23, 42, 0.7);
+    outline: none;
+    font: inherit;
+    font-weight: 800;
+}
+
+.search-input:focus,
+.compare-form input:focus,
+.settings-form input:focus,
+.assets-control input:focus,
+.assets-control select:focus {
+    border-color: rgba(56, 189, 248, 0.58);
 }
 
 .asset-grid {
@@ -236,7 +296,9 @@ p {
     padding: 20px;
     border-radius: 22px;
     border: 1px solid rgba(148, 163, 184, 0.14);
-    background: rgba(15, 23, 42, 0.56);
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), transparent 14rem),
+            rgba(15, 23, 42, 0.56);
 }
 
 .asset-card strong {
@@ -255,13 +317,13 @@ p {
 }
 
 .assets-page {
-    gap: 24px;
+    gap: 22px;
 }
 
 .assets-overview-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
 }
 
 .assets-overview-card {
@@ -271,7 +333,7 @@ p {
     border: 1px solid rgba(148, 163, 184, 0.14);
     border-radius: 20px;
     background:
-            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 12rem),
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.07), transparent 12rem),
             rgba(15, 23, 42, 0.56);
 }
 
@@ -312,25 +374,6 @@ p {
     letter-spacing: 0.08em;
 }
 
-.assets-control input,
-.assets-control select {
-    width: 100%;
-    min-height: 44px;
-    box-sizing: border-box;
-    padding: 0 14px;
-    border: 1px solid rgba(148, 163, 184, 0.22);
-    border-radius: 14px;
-    color: #e5edf7;
-    background: rgba(15, 23, 42, 0.72);
-    outline: none;
-    font-weight: 800;
-}
-
-.assets-control input:focus,
-.assets-control select:focus {
-    border-color: rgba(56, 189, 248, 0.58);
-}
-
 .asset-grid-rich {
     grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -338,13 +381,14 @@ p {
 .asset-card-rich {
     position: relative;
     overflow: hidden;
-    gap: 18px;
-    min-height: 320px;
+    gap: 16px;
+    min-height: 306px;
     padding: 22px;
+    border-color: rgba(148, 163, 184, 0.15);
     background:
-            radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 15rem),
-            radial-gradient(circle at bottom right, rgba(139, 92, 246, 0.08), transparent 14rem),
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 15rem),
             rgba(15, 23, 42, 0.62);
+    box-shadow: 0 16px 56px rgba(0, 0, 0, 0.14);
 }
 
 .asset-card-rich::before {
@@ -352,7 +396,7 @@ p {
     inset: 0;
     pointer-events: none;
     content: "";
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 42%);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.028), transparent 46%);
 }
 
 .asset-card-top,
@@ -375,6 +419,7 @@ p {
 }
 
 .asset-card-title-row strong {
+    color: #f8fafc;
     font-size: 34px;
     line-height: 1;
     letter-spacing: -0.06em;
@@ -393,21 +438,21 @@ p {
 
 .source-moex {
     color: #bfdbfe;
-    background: rgba(59, 130, 246, 0.18);
+    background: rgba(59, 130, 246, 0.16);
     border: 1px solid rgba(59, 130, 246, 0.26);
 }
 
 .source-binance {
     color: #fde68a;
-    background: rgba(245, 158, 11, 0.16);
-    border: 1px solid rgba(245, 158, 11, 0.26);
+    background: rgba(245, 158, 11, 0.14);
+    border: 1px solid rgba(245, 158, 11, 0.24);
 }
 
 .source-demo,
 .source-loading {
     color: #c4b5fd;
-    background: rgba(139, 92, 246, 0.16);
-    border: 1px solid rgba(139, 92, 246, 0.26);
+    background: rgba(139, 92, 246, 0.14);
+    border: 1px solid rgba(139, 92, 246, 0.24);
 }
 
 .asset-price-block {
@@ -427,7 +472,7 @@ p {
 
 .asset-price-block strong {
     color: #f8fafc;
-    font-size: 36px;
+    font-size: 34px;
     line-height: 1;
     letter-spacing: -0.06em;
 }
