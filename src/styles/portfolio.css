@@ -96,6 +96,38 @@
     font-weight: 800;
 }
 
+.portfolio-buy-calculator {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.portfolio-calculator-metric {
+    display: grid;
+    gap: 5px;
+    padding: 13px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    border-radius: 16px;
+    background: rgba(2, 6, 23, 0.28);
+}
+
+.portfolio-calculator-metric span {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 950;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.portfolio-calculator-metric strong {
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .portfolio-summary-grid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
 }
@@ -118,7 +150,7 @@
 
 .portfolio-line {
     display: grid;
-    grid-template-columns: minmax(210px, 0.95fr) minmax(520px, 2fr) minmax(210px, auto);
+    grid-template-columns: minmax(260px, 1fr) minmax(560px, 2fr) minmax(210px, auto);
     align-items: center;
     gap: 16px;
     min-height: 66px;
@@ -166,7 +198,8 @@
 }
 
 .portfolio-lot-line .portfolio-line-title strong {
-    font-size: 26px;
+    font-size: 20px;
+    letter-spacing: -0.04em;
 }
 
 .portfolio-line-title span {
@@ -185,7 +218,7 @@
 }
 
 .portfolio-lot-line .portfolio-line-metrics {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .portfolio-inline-metric {
@@ -340,16 +373,6 @@
     border: 1px solid rgba(239, 68, 68, 0.26);
 }
 
-.portfolio-ai-panel p {
-    color: #e2e8f0;
-    line-height: 1.65;
-}
-
-.portfolio-ai-panel small {
-    color: #64748b;
-    font-weight: 800;
-}
-
 .positive-value {
     color: #86efac !important;
 }
@@ -379,6 +402,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .portfolio-buy-calculator {
+        grid-column: 1 / -1;
+    }
+
     .portfolio-summary-grid {
         grid-template-columns: repeat(3, minmax(0, 1fr));
     }
@@ -399,6 +426,7 @@
     .portfolio-account-grid,
     .portfolio-account-form,
     .portfolio-buy-form,
+    .portfolio-buy-calculator,
     .portfolio-summary-grid,
     .portfolio-line-metrics,
     .portfolio-lot-line .portfolio-line-metrics,
@@ -410,5 +438,9 @@
 
     .portfolio-line-title strong {
         font-size: 26px;
+    }
+
+    .portfolio-lot-line .portfolio-line-title strong {
+        font-size: 18px;
     }
 }

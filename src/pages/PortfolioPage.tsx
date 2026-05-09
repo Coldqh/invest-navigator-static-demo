@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { getAssets } from "../services/assetsService";
+import { getMarketPrice } from "../services/marketDataService";
 import {
     buyAsset,
     getClosedTrades,
@@ -10,8 +11,12 @@ import {
     updateAccount,
     type ClosedTrade
 } from "../services/browserPortfolioService";
-import { generatePortfolioReport, type AiReport } from "../services/browserAiService";
-import type { PortfolioLotView, PortfolioSimulator, PortfolioTransaction } from "../types/domain";
+import type {
+    MarketPrice,
+    PortfolioLotView,
+    PortfolioSimulator,
+    PortfolioTransaction
+} from "../types/domain";
 import { LoadingBlock } from "../components/LoadingBlock";
 
 export function PortfolioPage() {
@@ -23,15 +28,40 @@ export function PortfolioPage() {
     const [usdBalance, setUsdBalance] = useState("");
     const [buyTicker, setBuyTicker] = useState(assets[0]?.ticker ?? "SBER");
     const [buyQuantity, setBuyQuantity] = useState("");
+    const [buyQuote, setBuyQuote] = useState<MarketPrice | null>(null);
     const [expandedTickers, setExpandedTickers] = useState<Record<string, boolean>>({});
     const [sellQuantities, setSellQuantities] = useState<Record<string, string>>({});
-    const [report, setReport] = useState<AiReport | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState("");
 
     useEffect(() => {
         refresh();
     }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        async function loadBuyQuote() {
+            try {
+                setBuyQuote(null);
+                const quote = await getMarketPrice(buyTicker);
+
+                if (isMounted) {
+                    setBuyQuote(quote);
+                }
+            } catch {
+                if (isMounted) {
+                    setBuyQuote(null);
+                }
+            }
+        }
+
+        loadBuyQuote();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [buyTicker]);
 
     async function refresh() {
         setIsLoading(true);
@@ -81,25 +111,41 @@ export function PortfolioPage() {
         }
     }
 
-    async function handleAiReport() {
-        if (!simulator) {
-            return;
-        }
-
-        setReport(await generatePortfolioReport(simulator));
-    }
-
     async function handleSeedDemo() {
         seedDemoPortfolio();
-        setReport(null);
         await refresh();
     }
 
     async function handleReset() {
         resetPortfolio();
-        setReport(null);
         await refresh();
     }
+
+    const selectedAsset = useMemo(() => {
+        return assets.find((asset) => asset.ticker === buyTicker) ?? null;
+    }, [assets, buyTicker]);
+
+    const buyCalculator = useMemo(() => {
+        const quantity = Number(buyQuantity);
+
+        if (!selectedAsset || !buyQuote || !Number.isFinite(quantity) || quantity <= 0) {
+            return {
+                total: 0,
+                afterBalance: 0
+            };
+        }
+
+        const total = quantity * buyQuote.price;
+        const currentBalance =
+            selectedAsset.currency === "RUB"
+                ? simulator?.account.rubBalance ?? 0
+                : simulator?.account.usdBalance ?? 0;
+
+        return {
+            total,
+            afterBalance: currentBalance - total
+        };
+    }, [buyQuantity, buyQuote, selectedAsset, simulator?.account.rubBalance, simulator?.account.usdBalance]);
 
     const realizedStats = useMemo(() => {
         const rubTrades = closedTrades.filter((trade) => trade.currency === "RUB");
@@ -148,10 +194,6 @@ export function PortfolioPage() {
 
                     <button type="button" className="ghost-button danger-button" onClick={handleReset}>
                         Сбросить
-                    </button>
-
-                    <button type="button" className="primary-button" onClick={handleAiReport}>
-                        AI-анализ
                     </button>
                 </div>
             </div>
@@ -236,6 +278,22 @@ export function PortfolioPage() {
                         <button type="submit" className="primary-button">
                             Купить
                         </button>
+
+                        <div className="portfolio-buy-calculator">
+                            <CalculatorMetric
+                                label="Цена"
+                                value={buyQuote && selectedAsset ? formatMoney(buyQuote.price, selectedAsset.currency) : "—"}
+                            />
+                            <CalculatorMetric
+                                label="Потратишь"
+                                value={selectedAsset ? formatMoney(buyCalculator.total, selectedAsset.currency) : "—"}
+                            />
+                            <CalculatorMetric
+                                label="После покупки"
+                                value={selectedAsset ? formatMoney(buyCalculator.afterBalance, selectedAsset.currency) : "—"}
+                                className={buyCalculator.afterBalance >= 0 ? "positive-value" : "negative-value"}
+                            />
+                        </div>
                     </form>
                 </article>
             </div>
@@ -321,49 +379,58 @@ export function PortfolioPage() {
 
                                 {expandedTickers[holding.ticker] && (
                                     <div className="portfolio-lot-list">
-                                        {holding.lots.map((lot) => (
-                                            <div className="portfolio-line portfolio-lot-line" key={lot.id}>
-                                                <div className="portfolio-line-title">
-                                                    <strong>{formatNumber(lot.remainingQuantity)} {lot.ticker}</strong>
-                                                    <span>от {formatDateOnly(lot.openedAt)}</span>
-                                                </div>
+                                        {holding.lots.map((lot) => {
+                                            const sellQuantity = Number(sellQuantities[lot.id] ?? 0);
+                                            const sellAmount = Number.isFinite(sellQuantity) && sellQuantity > 0
+                                                ? sellQuantity * lot.currentPrice
+                                                : 0;
 
-                                                <div className="portfolio-line-metrics">
-                                                    <InlineMetric label="Покупка" value={formatMoney(lot.buyPrice, lot.currency)} />
-                                                    <InlineMetric label="Сейчас" value={formatMoney(lot.currentPrice, lot.currency)} />
-                                                    <InlineMetric label="Вложено" value={formatMoney(lot.investedAmount, lot.currency)} />
-                                                    <InlineMetric label="Стоимость" value={formatMoney(lot.currentValue, lot.currency)} />
-                                                    <InlineMetric
-                                                        label="PnL"
-                                                        value={`${formatMoney(lot.profitLoss, lot.currency)} · ${formatPercent(lot.profitLossPercent)}`}
-                                                        className={lot.profitLoss >= 0 ? "positive-value" : "negative-value"}
-                                                    />
-                                                </div>
+                                            return (
+                                                <div className="portfolio-line portfolio-lot-line" key={lot.id}>
+                                                    <div className="portfolio-line-title">
+                                                        <strong>
+                                                            {formatNumber(lot.remainingQuantity)} {lot.ticker} {formatDateTime(lot.openedAt)}
+                                                        </strong>
+                                                    </div>
 
-                                                <div className="portfolio-line-actions portfolio-line-sell-actions">
-                                                    <input
-                                                        type="number"
-                                                        min="0"
-                                                        max={lot.remainingQuantity}
-                                                        step="0.0001"
-                                                        value={sellQuantities[lot.id] ?? ""}
-                                                        placeholder="Кол-во"
-                                                        onChange={(event) => setSellQuantities((current) => ({
-                                                            ...current,
-                                                            [lot.id]: event.target.value
-                                                        }))}
-                                                    />
+                                                    <div className="portfolio-line-metrics">
+                                                        <InlineMetric label="Покупка" value={formatMoney(lot.buyPrice, lot.currency)} />
+                                                        <InlineMetric label="Сейчас" value={formatMoney(lot.currentPrice, lot.currency)} />
+                                                        <InlineMetric label="Вложено" value={formatMoney(lot.investedAmount, lot.currency)} />
+                                                        <InlineMetric label="Стоимость" value={formatMoney(lot.currentValue, lot.currency)} />
+                                                        <InlineMetric
+                                                            label="PnL"
+                                                            value={`${formatMoney(lot.profitLoss, lot.currency)} · ${formatPercent(lot.profitLossPercent)}`}
+                                                            className={lot.profitLoss >= 0 ? "positive-value" : "negative-value"}
+                                                        />
+                                                        <InlineMetric label="Получишь" value={formatMoney(sellAmount, lot.currency)} />
+                                                    </div>
 
-                                                    <button
-                                                        type="button"
-                                                        className="ghost-button danger-button"
-                                                        onClick={() => handleSell(lot)}
-                                                    >
-                                                        Продать
-                                                    </button>
+                                                    <div className="portfolio-line-actions portfolio-line-sell-actions">
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            max={lot.remainingQuantity}
+                                                            step="0.0001"
+                                                            value={sellQuantities[lot.id] ?? ""}
+                                                            placeholder="Кол-во"
+                                                            onChange={(event) => setSellQuantities((current) => ({
+                                                                ...current,
+                                                                [lot.id]: event.target.value
+                                                            }))}
+                                                        />
+
+                                                        <button
+                                                            type="button"
+                                                            className="ghost-button danger-button"
+                                                            onClick={() => handleSell(lot)}
+                                                        >
+                                                            Продать
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -422,19 +489,6 @@ export function PortfolioPage() {
                     </div>
                 )}
             </article>
-
-            {report && (
-                <article className="panel portfolio-ai-panel">
-                    <div className="panel-header">
-                        <div>
-                            <h2>AI-анализ</h2>
-                        </div>
-                    </div>
-
-                    <p>{report.summary}</p>
-                    <small>{report.provider} · {report.disclaimer}</small>
-                </article>
-            )}
         </section>
     );
 }
@@ -483,6 +537,21 @@ function InlineMetric({ label, value, className }: InlineMetricProps) {
     );
 }
 
+type CalculatorMetricProps = {
+    label: string;
+    value: string;
+    className?: string;
+};
+
+function CalculatorMetric({ label, value, className }: CalculatorMetricProps) {
+    return (
+        <div className="portfolio-calculator-metric">
+            <span>{label}</span>
+            <strong className={className}>{value}</strong>
+        </div>
+    );
+}
+
 type ClosedTradeCardProps = {
     trade: ClosedTrade;
 };
@@ -499,7 +568,7 @@ function ClosedTradeCard({ trade }: ClosedTradeCardProps) {
                 value={`${formatMoney(trade.realizedProfitLoss, trade.currency)} · ${formatPercent(trade.realizedProfitLossPercent)}`}
                 className={trade.realizedProfitLoss >= 0 ? "positive-value" : "negative-value"}
             />
-            <InlineMetric label="Дата" value={formatDateOnly(trade.closedAt)} />
+            <InlineMetric label="Дата" value={formatDateTime(trade.closedAt)} />
         </div>
     );
 }
@@ -545,7 +614,7 @@ function TransactionCard({ transaction }: TransactionCardProps) {
             <InlineMetric label="Кол-во" value={formatNumber(transaction.quantity)} />
             <InlineMetric label="Цена" value={formatMoney(transaction.price, transaction.currency)} />
             <InlineMetric label="Сумма" value={formatMoney(transaction.totalAmount, transaction.currency)} />
-            <InlineMetric label="Дата" value={formatDateOnly(transaction.executedAt)} />
+            <InlineMetric label="Дата" value={formatDateTime(transaction.executedAt)} />
         </div>
     );
 }
@@ -568,6 +637,12 @@ function formatPercent(value: number): string {
     }).format(value)}%`;
 }
 
-function formatDateOnly(value: string): string {
-    return new Date(value).toLocaleDateString("ru-RU");
+function formatDateTime(value: string): string {
+    const date = new Date(value);
+
+    return `${date.toLocaleDateString("ru-RU")} ${date.toLocaleTimeString("ru-RU", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit"
+    })}`;
 }
