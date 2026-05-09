@@ -17,9 +17,11 @@ type CompareMetric = {
 
 export function ComparePage() {
     const assets = useMemo(() => getAssets(), []);
+    const defaultFirstTicker = assets[0]?.ticker ?? "SBER";
+    const defaultSecondTicker = assets[1]?.ticker ?? "BTCUSDT";
 
-    const [firstTicker, setFirstTicker] = useState("SBER");
-    const [secondTicker, setSecondTicker] = useState("BTCUSDT");
+    const [firstTicker, setFirstTicker] = useState(defaultFirstTicker);
+    const [secondTicker, setSecondTicker] = useState(defaultSecondTicker);
 
     const [firstItem, setFirstItem] = useState<AnalyticsSummary | null>(null);
     const [secondItem, setSecondItem] = useState<AnalyticsSummary | null>(null);
@@ -34,7 +36,7 @@ export function ComparePage() {
         const normalizedSecondTicker = secondTicker.trim().toUpperCase();
 
         if (!normalizedFirstTicker || !normalizedSecondTicker) {
-            setError("Введите два тикера для сравнения");
+            setError("Выберите два тикера для сравнения");
             return;
         }
 
@@ -95,9 +97,6 @@ export function ComparePage() {
                 <div>
                     <p className="eyebrow">Сравнение</p>
                     <h1>Два актива рядом</h1>
-                    <p>
-                        Сравниваем цену, рост, риск, волатильность, объём и источник данных прямо в браузере.
-                    </p>
                 </div>
             </div>
 
@@ -107,31 +106,31 @@ export function ComparePage() {
                 <form className="compare-form compare-form-rich" onSubmit={handleCompare}>
                     <label>
                         Первый актив
-                        <input
+                        <select
                             value={firstTicker}
-                            list="compare-assets"
-                            placeholder="SBER"
                             onChange={(event) => setFirstTicker(event.target.value)}
-                        />
+                        >
+                            {assets.map((asset) => (
+                                <option key={asset.id} value={asset.ticker}>
+                                    {asset.ticker} — {asset.name}
+                                </option>
+                            ))}
+                        </select>
                     </label>
 
                     <label>
                         Второй актив
-                        <input
+                        <select
                             value={secondTicker}
-                            list="compare-assets"
-                            placeholder="BTCUSDT"
                             onChange={(event) => setSecondTicker(event.target.value)}
-                        />
+                        >
+                            {assets.map((asset) => (
+                                <option key={asset.id} value={asset.ticker}>
+                                    {asset.ticker} — {asset.name}
+                                </option>
+                            ))}
+                        </select>
                     </label>
-
-                    <datalist id="compare-assets">
-                        {assets.map((asset) => (
-                            <option key={asset.id} value={asset.ticker}>
-                                {asset.ticker} — {asset.name}
-                            </option>
-                        ))}
-                    </datalist>
 
                     <button type="submit" className="primary-button" disabled={isLoading}>
                         {isLoading ? "Сравниваем..." : "Сравнить"}
@@ -143,10 +142,7 @@ export function ComparePage() {
                 <article className="compare-empty-state">
                     <div>
                         <p className="eyebrow">Быстрый старт</p>
-                        <h2>SBER против BTCUSDT</h2>
-                        <p>
-                            Нажми “Сравнить”, чтобы получить карточки активов, победителей по метрикам и общий вывод.
-                        </p>
+                        <h2>{firstTicker} против {secondTicker}</h2>
                     </div>
                 </article>
             ) : (
@@ -179,7 +175,6 @@ export function ComparePage() {
                         <div className="panel-header">
                             <div>
                                 <h2>Победители по категориям</h2>
-                                <p>Часть метрик трактуется по-разному: рост — выше лучше, риск и волатильность — ниже лучше.</p>
                             </div>
                         </div>
 
@@ -200,7 +195,6 @@ export function ComparePage() {
                             <div className="panel-header">
                                 <div>
                                     <h2>Итог сравнения</h2>
-                                    <p>Браузерная аналитика без базы данных и backend.</p>
                                 </div>
                             </div>
 
@@ -336,42 +330,42 @@ function buildCompareMetrics(
             firstValue: formatPercent(first.priceChangePercent),
             secondValue: formatPercent(second.priceChangePercent),
             winner: compareHigherIsBetter(first.priceChangePercent, second.priceChangePercent),
-            description: "Показывает, какой актив сильнее вырос на доступном окне данных."
+            description: "Выше лучше"
         },
         {
             label: "Риск",
             firstValue: `${first.riskScore}/100`,
             secondValue: `${second.riskScore}/100`,
             winner: compareLowerIsBetter(first.riskScore, second.riskScore),
-            description: "Ниже риск — спокойнее профиль по текущей модели."
+            description: "Ниже лучше"
         },
         {
             label: "Волатильность",
             firstValue: formatPercent(first.volatilityPercent),
             secondValue: formatPercent(second.volatilityPercent),
             winner: compareLowerIsBetter(first.volatilityPercent, second.volatilityPercent),
-            description: "Ниже волатильность — меньше среднее дневное движение."
+            description: "Ниже спокойнее"
         },
         {
             label: "Объём",
             firstValue: formatCompactNumber(first.averageVolume),
             secondValue: formatCompactNumber(second.averageVolume),
             winner: compareHigherIsBetter(first.averageVolume, second.averageVolume),
-            description: "Более высокий объём обычно означает больше рыночной активности."
+            description: "Выше активнее"
         },
         {
             label: "Цена",
             firstValue: formatNumber(first.currentPrice),
             secondValue: formatNumber(second.currentPrice),
             winner: compareHigherIsBetter(first.currentPrice, second.currentPrice),
-            description: "Не показатель качества, но полезно для общего масштаба инструмента."
+            description: "Масштаб инструмента"
         },
         {
             label: "Точек данных",
             firstValue: String(first.dataPoints),
             secondValue: String(second.dataPoints),
             winner: compareHigherIsBetter(first.dataPoints, second.dataPoints),
-            description: "Больше точек данных — устойчивее расчёт браузерной аналитики."
+            description: "Больше стабильнее"
         }
     ];
 }
@@ -391,11 +385,7 @@ function buildCompareSummary(
                 ? second
                 : null;
 
-    const calmer =
-        first.riskScore <= second.riskScore
-            ? first
-            : second;
-
+    const calmer = first.riskScore <= second.riskScore ? first : second;
     const strongerGrowth =
         first.priceChangePercent >= second.priceChangePercent
             ? first
@@ -406,8 +396,8 @@ function buildCompareSummary(
         : "Активы идут почти ровно";
 
     const text = leader
-        ? `${leader.ticker} забирает больше категорий в текущем сравнении. При этом итог не означает рекомендацию к покупке: здесь учитываются только доступные браузерные данные, риск, волатильность и движение цены.`
-        : "По сумме категорий явного лидера нет. В такой ситуации лучше смотреть не только общий счёт, но и конкретную цель: рост, спокойствие, объём или риск.";
+        ? `${leader.ticker} забирает больше категорий в текущем сравнении.`
+        : "По сумме категорий явного лидера нет.";
 
     return {
         title,
@@ -416,7 +406,7 @@ function buildCompareSummary(
             {
                 label: "Спокойнее",
                 value: calmer.ticker,
-                text: `${calmer.ticker} имеет более низкий риск по текущей модели.`
+                text: `${calmer.ticker} имеет более низкий риск.`
             },
             {
                 label: "Сильнее рост",
@@ -426,7 +416,7 @@ function buildCompareSummary(
             {
                 label: "Счёт",
                 value: `${firstWins} : ${secondWins}`,
-                text: `${first.ticker} против ${second.ticker} по основным категориям.`
+                text: `${first.ticker} против ${second.ticker}.`
             }
         ]
     };
