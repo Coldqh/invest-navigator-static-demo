@@ -102,6 +102,7 @@
 .asset-risk-panel,
 .asset-ai-panel {
     min-width: 0;
+    overflow: visible;
 }
 
 .asset-chart-header {
@@ -147,6 +148,7 @@
 
 .asset-chart-body {
     position: relative;
+    overflow: visible;
 }
 
 .asset-chart-body.chart-loading {
@@ -167,7 +169,7 @@
 
 .asset-line-chart {
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     height: 360px;
     border: 1px solid rgba(148, 163, 184, 0.12);
     border-radius: 22px;
@@ -182,6 +184,8 @@
 .asset-line-chart svg {
     width: 100%;
     height: 100%;
+    overflow: hidden;
+    border-radius: 22px;
 }
 
 .asset-line-chart-line {
@@ -213,10 +217,12 @@
 .asset-line-chart-points {
     position: absolute;
     inset: 0;
+    overflow: visible;
 }
 
 .asset-line-chart-point {
     position: absolute;
+    z-index: 5;
     width: 12px;
     height: 12px;
     border: 2px solid #020617;
@@ -228,27 +234,41 @@
 }
 
 .asset-line-chart-point:hover {
-    z-index: 20;
+    z-index: 50;
     transform: translate(-50%, -50%) scale(1.35);
 }
 
 .asset-chart-tooltip {
     position: absolute;
-    z-index: 30;
+    z-index: 100;
     left: 50%;
-    bottom: calc(100% + 12px);
+    top: calc(100% + 14px);
+    bottom: auto;
     display: none;
-    min-width: 190px;
+    min-width: 210px;
     padding: 12px;
     border: 1px solid rgba(56, 189, 248, 0.22);
     border-radius: 16px;
     color: #cbd5e1;
     background:
             radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 10rem),
-            rgba(2, 6, 23, 0.94);
-    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+            rgba(2, 6, 23, 0.96);
+    box-shadow: 0 22px 60px rgba(0, 0, 0, 0.44);
     transform: translateX(-50%);
     backdrop-filter: blur(16px);
+}
+
+.asset-chart-tooltip::before {
+    position: absolute;
+    left: 50%;
+    top: -7px;
+    width: 12px;
+    height: 12px;
+    border-left: 1px solid rgba(56, 189, 248, 0.22);
+    border-top: 1px solid rgba(56, 189, 248, 0.22);
+    background: rgba(2, 6, 23, 0.96);
+    content: "";
+    transform: translateX(-50%) rotate(45deg);
 }
 
 .asset-chart-tooltip strong {
@@ -290,6 +310,7 @@
     background:
             radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 18rem),
             rgba(2, 6, 23, 0.24);
+    overflow: visible;
 }
 
 .asset-candle-strip-large {
@@ -346,7 +367,8 @@
 }
 
 .asset-candle-tooltip {
-    bottom: calc(100% - 44px);
+    top: calc(100% + 12px);
+    bottom: auto;
 }
 
 .asset-risk-score {
@@ -519,5 +541,9 @@
 
     .asset-candle-strip-large {
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .asset-chart-tooltip {
+        min-width: 180px;
     }
 }
