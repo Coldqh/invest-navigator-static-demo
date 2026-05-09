@@ -6,6 +6,7 @@ import "./styles/index.css";
 import "./styles/app.css";
 import "./styles/dashboard.css";
 import "./styles/asset-details.css";
+import "./styles/compare.css";
 import "./styles/portfolio.css";
 
 const rootElement = document.getElementById("root");
