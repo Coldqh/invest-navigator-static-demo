@@ -1,12 +1,17 @@
 import { YANDEX_GPT_CONFIG } from "../config/yandexGptConfig";
 import type { AnalyticsSummary, PortfolioSimulator } from "../types/domain";
 
+export type AiRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
 export type AiReport = {
     provider: "MOCK" | "YANDEX_GPT";
+    verdict: string;
     summary: string;
     positiveFactors: string[];
     negativeFactors: string[];
+    actionItems: string[];
     riskScore: number;
+    riskLevel: AiRiskLevel;
     disclaimer: string;
 };
 
@@ -24,6 +29,16 @@ type YandexCompletionResponse = {
     };
 };
 
+type ParsedAiReport = {
+    verdict: string;
+    summary: string;
+    positiveFactors: string[];
+    negativeFactors: string[];
+    actionItems: string[];
+    riskScore: number;
+    riskLevel: AiRiskLevel;
+};
+
 export async function generateAssetReport(summary: AnalyticsSummary): Promise<AiReport> {
     if (YANDEX_GPT_CONFIG.enabled && YANDEX_GPT_CONFIG.apiKey) {
         try {
@@ -36,11 +51,11 @@ export async function generateAssetReport(summary: AnalyticsSummary): Promise<Ai
                 disclaimer: "AI-отчёт не является инвестиционной рекомендацией."
             };
         } catch {
-            return generateMockAssetReport(summary, "MOCK");
+            return generateMockAssetReport(summary);
         }
     }
 
-    return generateMockAssetReport(summary, "MOCK");
+    return generateMockAssetReport(summary);
 }
 
 export async function generatePortfolioReport(portfolio: PortfolioSimulator): Promise<AiReport> {
@@ -83,10 +98,12 @@ async function requestYandexGpt(prompt: string): Promise<string> {
                 {
                     role: "system",
                     text: [
-                        "Ты встроенный AI-аналитик демо-приложения Invest Navigator AI.",
-                        "Отвечай строго JSON без markdown.",
-                        "Не давай инвестиционных рекомендаций к покупке или продаже.",
-                        "Давай учебный аналитический обзор: риски, плюсы, минусы, общая картина."
+                        "Ты AI-аналитик в демо-приложении Invest Navigator AI.",
+                        "Отвечай строго валидным JSON без markdown.",
+                        "Не используй текст вне JSON.",
+                        "Не давай прямых советов купить или продать.",
+                        "Пиши компактно, уверенно, продуктовым языком.",
+                        "Фокус: риск, динамика, качество позиции, что стоит проверить вручную."
                     ].join(" ")
                 },
                 {
@@ -113,13 +130,25 @@ async function requestYandexGpt(prompt: string): Promise<string> {
 
 function buildAssetPrompt(summary: AnalyticsSummary): string {
     return JSON.stringify({
-        task: "Сделай краткий JSON-отчёт по активу.",
+        task: "Сделай компактный JSON-отчёт по активу.",
         requiredJsonShape: {
+            verdict: "string",
             summary: "string",
             positiveFactors: ["string"],
             negativeFactors: ["string"],
-            riskScore: 0
+            actionItems: ["string"],
+            riskScore: 0,
+            riskLevel: "LOW | MEDIUM | HIGH | CRITICAL"
         },
+        rules: [
+            "verdict — короткая фраза до 80 символов",
+            "summary — 1-2 предложения",
+            "positiveFactors — 3 пункта",
+            "negativeFactors — 3 пункта",
+            "actionItems — 3 пункта без прямых команд купить/продать",
+            "riskScore — число 0-100",
+            "riskLevel — LOW, MEDIUM, HIGH или CRITICAL"
+        ],
         asset: {
             ticker: summary.ticker,
             name: summary.name,
@@ -140,13 +169,25 @@ function buildAssetPrompt(summary: AnalyticsSummary): string {
 
 function buildPortfolioPrompt(portfolio: PortfolioSimulator): string {
     return JSON.stringify({
-        task: "Сделай краткий JSON-отчёт по симуляторному портфелю.",
+        task: "Сделай компактный JSON-отчёт по симуляторному портфелю.",
         requiredJsonShape: {
+            verdict: "string",
             summary: "string",
             positiveFactors: ["string"],
             negativeFactors: ["string"],
-            riskScore: 0
+            actionItems: ["string"],
+            riskScore: 0,
+            riskLevel: "LOW | MEDIUM | HIGH | CRITICAL"
         },
+        rules: [
+            "verdict — короткая фраза до 80 символов",
+            "summary — 1-2 предложения",
+            "positiveFactors — 3 пункта",
+            "negativeFactors — 3 пункта",
+            "actionItems — 3 пункта без прямых команд купить/продать",
+            "riskScore — число 0-100",
+            "riskLevel — LOW, MEDIUM, HIGH или CRITICAL"
+        ],
         portfolio: {
             account: portfolio.account,
             assetsCount: portfolio.assetsCount,
@@ -174,32 +215,54 @@ function buildPortfolioPrompt(portfolio: PortfolioSimulator): string {
     });
 }
 
-function parseAiJson(text: string, fallbackRiskScore: number): Omit<AiReport, "provider" | "disclaimer"> {
+function parseAiJson(text: string, fallbackRiskScore: number): ParsedAiReport {
     try {
         const cleanedText = text
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
 
-        const parsed = JSON.parse(cleanedText) as Partial<AiReport>;
+        const parsed = JSON.parse(cleanedText) as Partial<ParsedAiReport>;
+
+        const riskScore = normalizeRiskScore(parsed.riskScore, fallbackRiskScore);
 
         return {
-            summary: typeof parsed.summary === "string"
-                ? parsed.summary
-                : "AI вернул неполный ответ, поэтому показана упрощённая сводка.",
+            verdict: normalizeString(parsed.verdict, buildVerdictByRisk(riskScore)),
+            summary: normalizeString(
+                parsed.summary,
+                "Данные обработаны, но AI вернул неполный ответ. Использована краткая fallback-сводка."
+            ),
             positiveFactors: normalizeStringArray(parsed.positiveFactors, [
-                "AI-анализ успешно получен.",
-                "Данные обработаны в браузерной версии приложения."
+                "Данные успешно обработаны.",
+                "Доступна оценка риска и движения.",
+                "Инструмент можно сравнить с другими активами."
             ]),
             negativeFactors: normalizeStringArray(parsed.negativeFactors, [
-                "Ответ AI был частично неполным.",
-                "Статическая версия не имеет серверной проверки данных."
+                "Часть данных может приходить из fallback-источника.",
+                "Статическая версия работает без серверной проверки.",
+                "Оценка основана на ограниченном наборе метрик."
             ]),
-            riskScore: normalizeRiskScore(parsed.riskScore, fallbackRiskScore)
+            actionItems: normalizeStringArray(parsed.actionItems, [
+                "Сравнить риск с похожими активами.",
+                "Проверить движение на разных периодах графика.",
+                "Оценить размер позиции относительно портфеля."
+            ]),
+            riskScore,
+            riskLevel: normalizeRiskLevel(parsed.riskLevel, toAiRiskLevel(riskScore))
         };
     } catch {
         throw new Error("Failed to parse YandexGPT JSON");
     }
+}
+
+function normalizeString(value: unknown, fallback: string): string {
+    if (typeof value !== "string") {
+        return fallback;
+    }
+
+    const normalized = value.trim();
+
+    return normalized.length > 0 ? normalized : fallback;
 }
 
 function normalizeStringArray(value: unknown, fallback: string[]): string[] {
@@ -210,7 +273,8 @@ function normalizeStringArray(value: unknown, fallback: string[]): string[] {
     const items = value
         .filter((item): item is string => typeof item === "string")
         .map((item) => item.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .slice(0, 4);
 
     return items.length > 0 ? items : fallback;
 }
@@ -225,51 +289,225 @@ function normalizeRiskScore(value: unknown, fallback: number): number {
     return Math.min(100, Math.max(0, Math.round(numericValue)));
 }
 
-function generateMockAssetReport(
-    summary: AnalyticsSummary,
-    provider: "MOCK" | "YANDEX_GPT"
-): AiReport {
+function normalizeRiskLevel(value: unknown, fallback: AiRiskLevel): AiRiskLevel {
+    if (value === "LOW" || value === "MEDIUM" || value === "HIGH" || value === "CRITICAL") {
+        return value;
+    }
+
+    return fallback;
+}
+
+function generateMockAssetReport(summary: AnalyticsSummary): AiReport {
+    const riskLevel = toAiRiskLevel(summary.riskScore);
+    const isGrowing = summary.priceChangePercent >= 0;
+
     return {
-        provider,
-        summary: `${summary.ticker}: текущая цена ${summary.currentPrice.toFixed(4)}, изменение ${summary.priceChangePercent.toFixed(2)}%, риск ${summary.riskScore}/100.`,
-        positiveFactors: [
-            "Есть свежие рыночные данные или fallback-данные для демо.",
-            "Актив можно сравнить с другими инструментами.",
-            "Показатели риска и волатильности считаются прямо в браузере."
-        ],
-        negativeFactors: [
-            "Статическая версия не имеет серверной валидации.",
-            "Если браузер блокирует CORS, используется демо-цена.",
-            "AI-запрос мог быть заменён fallback-отчётом."
+        provider: "MOCK",
+        verdict: buildAssetVerdict(summary),
+        summary: `${summary.ticker} показывает ${isGrowing ? "положительное" : "отрицательное"} движение ${formatPercent(summary.priceChangePercent)} при риске ${summary.riskScore}/100. Основные параметры для контроля — волатильность, источник данных и сила движения на выбранном периоде.`,
+        positiveFactors: buildAssetPositiveFactors(summary),
+        negativeFactors: buildAssetNegativeFactors(summary),
+        actionItems: [
+            "Сравнить актив с ближайшими альтернативами.",
+            "Проверить график на дневном, недельном и месячном периоде.",
+            "Оценить размер позиции относительно общего портфеля."
         ],
         riskScore: summary.riskScore,
-        disclaimer: "Демо-отчёт не является инвестиционной рекомендацией."
+        riskLevel,
+        disclaimer: "AI-отчёт не является инвестиционной рекомендацией."
     };
 }
 
 function generateMockPortfolioReport(portfolio: PortfolioSimulator): AiReport {
     const riskScore = calculatePortfolioRiskScore(portfolio);
+    const riskLevel = toAiRiskLevel(riskScore);
+    const totalOpenPositions = portfolio.assetsCount;
+    const rubPositive = portfolio.totalRubProfitLoss >= 0;
+    const usdPositive = portfolio.totalUsdProfitLoss >= 0;
 
     return {
         provider: "MOCK",
-        summary: `В портфеле ${portfolio.assetsCount} активов и ${portfolio.lotsCount} лотов. Основной фокус сейчас — контроль риска, баланса RUB/USD и качества точек входа.`,
-        positiveFactors: [
-            "Портфель разделён на отдельные лоты, поэтому видны разные точки входа.",
-            "Счёт хранит RUB и USD отдельно.",
-            "Покупки и продажи фиксируются в журнале операций."
-        ],
-        negativeFactors: [
-            "Данные хранятся только в браузере.",
-            "Нет синхронизации между устройствами.",
-            "AI-запрос мог быть заменён fallback-отчётом."
+        verdict: buildPortfolioVerdict(portfolio, riskScore),
+        summary: `Портфель содержит ${totalOpenPositions} активов и ${portfolio.lotsCount} открытых лотов. RUB PnL ${rubPositive ? "положительный" : "отрицательный"}, USD PnL ${usdPositive ? "положительный" : "отрицательный"}, общий уровень риска ${riskScore}/100.`,
+        positiveFactors: buildPortfolioPositiveFactors(portfolio),
+        negativeFactors: buildPortfolioNegativeFactors(portfolio),
+        actionItems: [
+            "Проверить концентрацию портфеля по крупнейшим позициям.",
+            "Сравнить PnL по RUB и USD отдельно.",
+            "Посмотреть закрытые сделки и качество точек выхода."
         ],
         riskScore,
-        disclaimer: "Демо-отчёт не является инвестиционной рекомендацией."
+        riskLevel,
+        disclaimer: "AI-отчёт не является инвестиционной рекомендацией."
     };
 }
 
-function calculatePortfolioRiskScore(portfolio: PortfolioSimulator): number {
-    const totalRisk = Math.abs(portfolio.totalRubProfitLoss) + Math.abs(portfolio.totalUsdProfitLoss);
+function buildAssetVerdict(summary: AnalyticsSummary): string {
+    if (summary.riskScore >= 80) {
+        return `${summary.ticker}: агрессивный профиль риска`;
+    }
 
-    return Math.min(100, Math.round(totalRisk / 1000 + portfolio.lotsCount * 7));
+    if (summary.riskScore >= 60) {
+        return `${summary.ticker}: повышенная волатильность`;
+    }
+
+    if (summary.priceChangePercent >= 5) {
+        return `${summary.ticker}: сильное положительное движение`;
+    }
+
+    if (summary.priceChangePercent <= -5) {
+        return `${summary.ticker}: заметное снижение`;
+    }
+
+    return `${summary.ticker}: умеренный рыночный профиль`;
+}
+
+function buildAssetPositiveFactors(summary: AnalyticsSummary): string[] {
+    const factors: string[] = [];
+
+    if (summary.priceChangePercent > 0) {
+        factors.push(`Положительное движение: ${formatPercent(summary.priceChangePercent)}.`);
+    } else {
+        factors.push("Актив доступен для сравнения с более сильными инструментами.");
+    }
+
+    if (summary.averageVolume > 0) {
+        factors.push("Есть объём торгов для базовой оценки активности.");
+    }
+
+    if (summary.source !== "DEMO") {
+        factors.push(`Данные получены из источника ${summary.source}.`);
+    } else {
+        factors.push("Fallback-данные позволяют сохранить работу демо без backend.");
+    }
+
+    return factors;
+}
+
+function buildAssetNegativeFactors(summary: AnalyticsSummary): string[] {
+    const factors: string[] = [];
+
+    if (summary.riskScore >= 60) {
+        factors.push(`Риск выше среднего: ${summary.riskScore}/100.`);
+    } else {
+        factors.push("Риск требует проверки на других периодах графика.");
+    }
+
+    if (summary.volatilityPercent >= 3) {
+        factors.push(`Волатильность заметная: ${formatPercent(summary.volatilityPercent)}.`);
+    } else {
+        factors.push("Низкая волатильность может ограничивать краткосрочное движение.");
+    }
+
+    if (summary.source === "DEMO") {
+        factors.push("Источник DEMO снижает точность анализа.");
+    } else {
+        factors.push("Оценка не учитывает новости, отчётность и внешний фон.");
+    }
+
+    return factors;
+}
+
+function buildPortfolioVerdict(portfolio: PortfolioSimulator, riskScore: number): string {
+    if (portfolio.assetsCount === 0) {
+        return "Портфель пока пуст";
+    }
+
+    if (riskScore >= 75) {
+        return "Портфель требует контроля риска";
+    }
+
+    if (portfolio.totalRubProfitLoss >= 0 && portfolio.totalUsdProfitLoss >= 0) {
+        return "Портфель в положительной зоне";
+    }
+
+    if (portfolio.totalRubProfitLoss < 0 || portfolio.totalUsdProfitLoss < 0) {
+        return "Портфель требует пересмотра слабых позиций";
+    }
+
+    return "Портфель в рабочем состоянии";
+}
+
+function buildPortfolioPositiveFactors(portfolio: PortfolioSimulator): string[] {
+    const factors: string[] = [];
+
+    if (portfolio.assetsCount > 1) {
+        factors.push("Портфель не завязан на один актив.");
+    } else if (portfolio.assetsCount === 1) {
+        factors.push("Позиция легко контролируется из-за простой структуры.");
+    } else {
+        factors.push("Счёт готов к формированию портфеля.");
+    }
+
+    if (portfolio.lotsCount > portfolio.assetsCount) {
+        factors.push("Лоты разделены по разным точкам входа.");
+    } else {
+        factors.push("Структура лотов остаётся простой.");
+    }
+
+    if (portfolio.totalRubProfitLoss >= 0 || portfolio.totalUsdProfitLoss >= 0) {
+        factors.push("Часть портфеля находится в положительной зоне.");
+    } else {
+        factors.push("Данные портфеля уже готовы для анализа PnL.");
+    }
+
+    return factors;
+}
+
+function buildPortfolioNegativeFactors(portfolio: PortfolioSimulator): string[] {
+    const factors: string[] = [];
+
+    if (portfolio.assetsCount === 0) {
+        factors.push("Нет открытых активов для анализа.");
+    } else if (portfolio.assetsCount < 3) {
+        factors.push("Диверсификация ограничена малым числом активов.");
+    } else {
+        factors.push("Нужно контролировать перекосы между активами.");
+    }
+
+    if (portfolio.totalRubProfitLoss < 0) {
+        factors.push("RUB-часть портфеля находится в минусе.");
+    } else {
+        factors.push("RUB-часть требует периодического контроля фиксации результата.");
+    }
+
+    if (portfolio.totalUsdProfitLoss < 0) {
+        factors.push("USD-часть портфеля находится в минусе.");
+    } else {
+        factors.push("USD-часть требует контроля риска на волатильных активах.");
+    }
+
+    return factors;
+}
+
+function buildVerdictByRisk(riskScore: number): string {
+    if (riskScore >= 80) return "Критический риск";
+    if (riskScore >= 60) return "Повышенный риск";
+    if (riskScore >= 35) return "Средний риск";
+
+    return "Низкий риск";
+}
+
+function calculatePortfolioRiskScore(portfolio: PortfolioSimulator): number {
+    const openRisk =
+        Math.abs(portfolio.totalRubProfitLoss) / 1000 +
+        Math.abs(portfolio.totalUsdProfitLoss) / 500;
+
+    const structureRisk = portfolio.lotsCount * 6 + Math.max(0, 3 - portfolio.assetsCount) * 8;
+
+    return Math.min(100, Math.round(openRisk + structureRisk));
+}
+
+function toAiRiskLevel(score: number): AiRiskLevel {
+    if (score >= 80) return "CRITICAL";
+    if (score >= 60) return "HIGH";
+    if (score >= 35) return "MEDIUM";
+
+    return "LOW";
+}
+
+function formatPercent(value: number): string {
+    return `${new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 2
+    }).format(value)}%`;
 }
