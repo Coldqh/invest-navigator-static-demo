@@ -1,30 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
 import { getAnalyticsSummary } from "../services/marketDataService";
-import {
-    getClosedTrades,
-    getSimulator,
-    type ClosedTrade
-} from "../services/browserPortfolioService";
-import type {
-    AnalyticsSummary,
-    PortfolioHoldingView,
-    PortfolioSimulator
-} from "../types/domain";
-import { LoadingBlock } from "../components/LoadingBlock";
+import type { AnalyticsSummary } from "../types/domain";
 
-type PositionAccent = {
+type MarketCardData = {
     label: string;
-    ticker: string;
     value: string;
+    ticker?: string;
     className?: string;
 };
 
+type RankingMode = "percent" | "risk" | "volatility" | "volume" | "price";
+
 export function DashboardPage() {
     const [analytics, setAnalytics] = useState<AnalyticsSummary[]>([]);
-    const [portfolio, setPortfolio] = useState<PortfolioSimulator | null>(null);
-    const [closedTrades, setClosedTrades] = useState<ClosedTrade[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -32,109 +23,152 @@ export function DashboardPage() {
             setIsLoading(true);
 
             const assets = getAssets();
+            const loadedAnalytics = await Promise.all(
+                assets.map(async (asset) => {
+                    try {
+                        return await getAnalyticsSummary(asset.ticker);
+                    } catch {
+                        return null;
+                    }
+                })
+            );
 
-            const [loadedPortfolio, loadedAnalytics] = await Promise.all([
-                getSimulator(),
-                Promise.all(assets.map((asset) => getAnalyticsSummary(asset.ticker)))
-            ]);
-
-            setPortfolio(loadedPortfolio);
-            setClosedTrades(getClosedTrades());
-            setAnalytics(loadedAnalytics);
+            setAnalytics(
+                loadedAnalytics.filter((item): item is AnalyticsSummary => Boolean(item))
+            );
             setIsLoading(false);
         }
 
         load();
     }, []);
 
-    const analyticsByTicker = useMemo(() => {
-        return analytics.reduce<Record<string, AnalyticsSummary>>((acc, item) => {
-            acc[item.ticker] = item;
-            return acc;
-        }, {});
-    }, [analytics]);
+    const market = useMemo(() => {
+        const byGrowth = [...analytics].sort((a, b) => b.priceChangePercent - a.priceChangePercent);
+        const byFall = [...analytics].sort((a, b) => a.priceChangePercent - b.priceChangePercent);
+        const byVolatility = [...analytics].sort((a, b) => b.volatilityPercent - a.volatilityPercent);
+        const byRisk = [...analytics].sort((a, b) => b.riskScore - a.riskScore);
+        const byVolume = [...analytics].sort((a, b) => b.averageVolume - a.averageVolume);
+        const byPriceDesc = [...analytics].sort((a, b) => b.currentPrice - a.currentPrice);
+        const byPriceAsc = [...analytics].sort((a, b) => a.currentPrice - b.currentPrice);
 
-    const realizedRub = useMemo(() => {
-        return closedTrades
-            .filter((trade) => trade.currency === "RUB")
-            .reduce((sum, trade) => sum + trade.realizedProfitLoss, 0);
-    }, [closedTrades]);
+        const gainers = analytics.filter((item) => item.priceChangePercent > 0).length;
+        const losers = analytics.filter((item) => item.priceChangePercent < 0).length;
+        const neutral = analytics.length - gainers - losers;
 
-    const realizedUsd = useMemo(() => {
-        return closedTrades
-            .filter((trade) => trade.currency === "USD")
-            .reduce((sum, trade) => sum + trade.realizedProfitLoss, 0);
-    }, [closedTrades]);
+        const averageGrowth = average(analytics.map((item) => item.priceChangePercent));
+        const averageVolatility = average(analytics.map((item) => item.volatilityPercent));
+        const averageRisk = average(analytics.map((item) => item.riskScore));
+        const riskPressure = analytics.filter((item) => item.riskScore >= 60).length;
 
-    const portfolioRisk = useMemo(() => {
-        if (!portfolio) {
-            return 0;
-        }
+        const growthLeader = byGrowth[0] ?? null;
+        const fallLeader = byFall[0] ?? null;
+        const volatilityLeader = byVolatility[0] ?? null;
+        const riskLeader = byRisk[0] ?? null;
+        const volumeLeader = byVolume[0] ?? null;
+        const expensiveLeader = byPriceDesc[0] ?? null;
+        const cheapLeader = byPriceAsc[0] ?? null;
 
-        return calculatePortfolioRisk(portfolio, analyticsByTicker);
-    }, [analyticsByTicker, portfolio]);
+        const marketSpread =
+            growthLeader && fallLeader
+                ? growthLeader.priceChangePercent - fallLeader.priceChangePercent
+                : 0;
 
-    const topGrowth = useMemo(() => {
-        return [...analytics].sort((a, b) => b.priceChangePercent - a.priceChangePercent).slice(0, 3);
-    }, [analytics]);
-
-    const topFall = useMemo(() => {
-        return [...analytics].sort((a, b) => a.priceChangePercent - b.priceChangePercent).slice(0, 3);
-    }, [analytics]);
-
-    const topRisk = useMemo(() => {
-        return [...analytics].sort((a, b) => b.riskScore - a.riskScore).slice(0, 3);
-    }, [analytics]);
-
-    const positionAccents = useMemo<PositionAccent[]>(() => {
-        if (!portfolio || portfolio.holdings.length === 0) {
-            return [];
-        }
-
-        const largestPosition = [...portfolio.holdings]
-            .sort((first, second) => second.currentValue - first.currentValue)[0];
-
-        const bestOpenPosition = [...portfolio.holdings]
-            .sort((first, second) => second.profitLossPercent - first.profitLossPercent)[0];
-
-        const worstOpenPosition = [...portfolio.holdings]
-            .sort((first, second) => first.profitLossPercent - second.profitLossPercent)[0];
-
-        const riskiestPosition = [...portfolio.holdings]
+        const riskGrowthMismatch = [...analytics]
             .sort((first, second) => {
-                const firstRisk = analyticsByTicker[first.ticker]?.riskScore ?? 0;
-                const secondRisk = analyticsByTicker[second.ticker]?.riskScore ?? 0;
+                const firstScore = first.riskScore - Math.max(first.priceChangePercent, 0) * 2;
+                const secondScore = second.riskScore - Math.max(second.priceChangePercent, 0) * 2;
 
-                return secondRisk - firstRisk;
-            })[0];
+                return secondScore - firstScore;
+            })[0] ?? null;
 
+        return {
+            byGrowth,
+            byFall,
+            byVolatility,
+            byRisk,
+            byVolume,
+            byPriceDesc,
+            byPriceAsc,
+            gainers,
+            losers,
+            neutral,
+            averageGrowth,
+            averageVolatility,
+            averageRisk,
+            riskPressure,
+            marketSpread,
+            growthLeader,
+            fallLeader,
+            volatilityLeader,
+            riskLeader,
+            volumeLeader,
+            expensiveLeader,
+            cheapLeader,
+            riskGrowthMismatch
+        };
+    }, [analytics]);
+
+    const marketCards = useMemo<MarketCardData[]>(() => {
         return [
             {
-                label: "Крупнейшая позиция",
-                ticker: largestPosition.ticker,
-                value: formatMoney(largestPosition.currentValue, largestPosition.currency)
+                label: "Наибольший рост",
+                ticker: market.growthLeader?.ticker,
+                value: market.growthLeader
+                    ? formatPercentWithSign(market.growthLeader.priceChangePercent)
+                    : "—",
+                className: "positive-value"
             },
             {
-                label: "Лучший открытый PnL",
-                ticker: bestOpenPosition.ticker,
-                value: formatPercentWithSign(bestOpenPosition.profitLossPercent),
-                className: bestOpenPosition.profitLoss >= 0 ? "positive-value" : "negative-value"
+                label: "Наибольшее падение",
+                ticker: market.fallLeader?.ticker,
+                value: market.fallLeader
+                    ? formatPercentWithSign(market.fallLeader.priceChangePercent)
+                    : "—",
+                className: "negative-value"
             },
             {
-                label: "Худший открытый PnL",
-                ticker: worstOpenPosition.ticker,
-                value: formatPercentWithSign(worstOpenPosition.profitLossPercent),
-                className: worstOpenPosition.profitLoss >= 0 ? "positive-value" : "negative-value"
+                label: "Макс. волатильность",
+                ticker: market.volatilityLeader?.ticker,
+                value: market.volatilityLeader
+                    ? formatPercent(market.volatilityLeader.volatilityPercent)
+                    : "—"
             },
             {
-                label: "Самая рисковая позиция",
-                ticker: riskiestPosition.ticker,
-                value: `${analyticsByTicker[riskiestPosition.ticker]?.riskScore ?? 0}/100`
+                label: "Макс. риск",
+                ticker: market.riskLeader?.ticker,
+                value: market.riskLeader
+                    ? `${market.riskLeader.riskScore}/100`
+                    : "—"
+            },
+            {
+                label: "Макс. объём",
+                ticker: market.volumeLeader?.ticker,
+                value: market.volumeLeader
+                    ? formatCompactNumber(market.volumeLeader.averageVolume)
+                    : "—"
+            },
+            {
+                label: "Самый дорогой",
+                ticker: market.expensiveLeader?.ticker,
+                value: market.expensiveLeader
+                    ? formatNumber(market.expensiveLeader.currentPrice)
+                    : "—"
+            },
+            {
+                label: "Самый дешёвый",
+                ticker: market.cheapLeader?.ticker,
+                value: market.cheapLeader
+                    ? formatNumber(market.cheapLeader.currentPrice)
+                    : "—"
+            },
+            {
+                label: "Разрыв рынка",
+                value: formatPercentWithSign(market.marketSpread)
             }
         ];
-    }, [analyticsByTicker, portfolio]);
+    }, [market]);
 
-    if (isLoading || !portfolio) {
+    if (isLoading) {
         return <LoadingBlock text="Собираем дашборд..." />;
     }
 
@@ -147,106 +181,105 @@ export function DashboardPage() {
                 </div>
             </div>
 
-            <div className="dashboard-summary-grid">
-                <DashboardStat label="Активов" value={String(portfolio.assetsCount)} />
-                <DashboardStat label="Лотов" value={String(portfolio.lotsCount)} />
-                <DashboardStat label="RUB баланс" value={formatMoney(portfolio.account.rubBalance, "RUB")} />
-                <DashboardStat label="USD баланс" value={formatMoney(portfolio.account.usdBalance, "USD")} />
-                <DashboardStat
-                    label="RUB Unrealized"
-                    value={formatMoney(portfolio.totalRubProfitLoss, "RUB")}
-                    className={portfolio.totalRubProfitLoss >= 0 ? "positive-value" : "negative-value"}
-                />
-                <DashboardStat
-                    label="USD Unrealized"
-                    value={formatMoney(portfolio.totalUsdProfitLoss, "USD")}
-                    className={portfolio.totalUsdProfitLoss >= 0 ? "positive-value" : "negative-value"}
-                />
-                <DashboardStat
-                    label="RUB Realized"
-                    value={formatMoney(realizedRub, "RUB")}
-                    className={realizedRub >= 0 ? "positive-value" : "negative-value"}
-                />
-                <DashboardStat
-                    label="USD Realized"
-                    value={formatMoney(realizedUsd, "USD")}
-                    className={realizedUsd >= 0 ? "positive-value" : "negative-value"}
-                />
+            <div className="dashboard-market-grid">
+                {marketCards.map((card) => (
+                    <MarketCard key={card.label} card={card} />
+                ))}
             </div>
 
-            <div className="dashboard-grid dashboard-grid-pulse">
-                <article className="panel dashboard-pulse-panel">
+            <div className="dashboard-grid dashboard-grid-market">
+                <article className="panel dashboard-market-pulse-panel">
                     <div className="panel-header">
                         <div>
-                            <h2>Портфельный пульс</h2>
+                            <h2>Рыночная ширина</h2>
                         </div>
                     </div>
 
                     <div className="dashboard-pulse-grid">
-                        <PulseCard label="Риск портфеля" value={`${portfolioRisk}/100`} />
-                        <PulseCard label="RUB стоимость" value={formatMoney(portfolio.totalRubCurrentValue, "RUB")} />
-                        <PulseCard label="USD стоимость" value={formatMoney(portfolio.totalUsdCurrentValue, "USD")} />
+                        <PulseCard label="Растут" value={String(market.gainers)} className="positive-value" />
+                        <PulseCard label="Падают" value={String(market.losers)} className="negative-value" />
+                        <PulseCard label="Нейтрально" value={String(market.neutral)} />
+                        <PulseCard label="Средний рост" value={formatPercentWithSign(market.averageGrowth)} />
+                        <PulseCard label="Средняя волатильность" value={formatPercent(market.averageVolatility)} />
+                        <PulseCard label="Средний риск" value={`${Math.round(market.averageRisk)}/100`} />
+                        <PulseCard label="Риск-давление" value={`${market.riskPressure} активов`} />
                         <PulseCard
-                            label="RUB PnL"
-                            value={`${formatMoney(portfolio.totalRubProfitLoss, "RUB")} · ${formatPercentWithSign(calculatePnlPercent(portfolio.totalRubProfitLoss, portfolio.totalRubInvested))}`}
-                            className={portfolio.totalRubProfitLoss >= 0 ? "positive-value" : "negative-value"}
-                        />
-                        <PulseCard
-                            label="USD PnL"
-                            value={`${formatMoney(portfolio.totalUsdProfitLoss, "USD")} · ${formatPercentWithSign(calculatePnlPercent(portfolio.totalUsdProfitLoss, portfolio.totalUsdInvested))}`}
-                            className={portfolio.totalUsdProfitLoss >= 0 ? "positive-value" : "negative-value"}
+                            label="Риск без импульса"
+                            value={market.riskGrowthMismatch ? market.riskGrowthMismatch.ticker : "—"}
                         />
                     </div>
                 </article>
 
-                <article className="panel dashboard-position-panel">
+                <article className="panel dashboard-signal-panel">
                     <div className="panel-header">
                         <div>
-                            <h2>Позиции-акценты</h2>
+                            <h2>Сигналы рынка</h2>
                         </div>
                     </div>
 
-                    {positionAccents.length === 0 ? (
-                        <div className="empty-state">Открытых позиций нет</div>
-                    ) : (
-                        <div className="dashboard-position-grid">
-                            {positionAccents.map((accent) => (
-                                <Link
-                                    to={`/assets/${accent.ticker}`}
-                                    className="dashboard-position-card"
-                                    key={`${accent.label}-${accent.ticker}`}
-                                >
-                                    <span>{accent.label}</span>
-                                    <strong>{accent.ticker}</strong>
-                                    <em className={accent.className}>{accent.value}</em>
-                                </Link>
-                            ))}
-                        </div>
-                    )}
+                    <div className="dashboard-signal-grid">
+                        <SignalCard
+                            label="Импульс"
+                            item={market.growthLeader}
+                            value={market.growthLeader ? formatPercentWithSign(market.growthLeader.priceChangePercent) : "—"}
+                            className="positive-value"
+                        />
+
+                        <SignalCard
+                            label="Просадка"
+                            item={market.fallLeader}
+                            value={market.fallLeader ? formatPercentWithSign(market.fallLeader.priceChangePercent) : "—"}
+                            className="negative-value"
+                        />
+
+                        <SignalCard
+                            label="Нерв рынка"
+                            item={market.volatilityLeader}
+                            value={market.volatilityLeader ? formatPercent(market.volatilityLeader.volatilityPercent) : "—"}
+                        />
+
+                        <SignalCard
+                            label="Опасная зона"
+                            item={market.riskLeader}
+                            value={market.riskLeader ? `${market.riskLeader.riskScore}/100` : "—"}
+                        />
+                    </div>
                 </article>
             </div>
 
             <div className="dashboard-grid dashboard-grid-main">
-                <DashboardRanking title="Лучший рост" items={topGrowth} mode="percent" />
-                <DashboardRanking title="Падение" items={topFall} mode="percent" />
-                <DashboardRanking title="Топ риска" items={topRisk} mode="risk" />
+                <DashboardRanking title="Рост" items={market.byGrowth.slice(0, 3)} mode="percent" />
+                <DashboardRanking title="Падение" items={market.byFall.slice(0, 3)} mode="percent" />
+                <DashboardRanking title="Волатильность" items={market.byVolatility.slice(0, 3)} mode="volatility" />
+                <DashboardRanking title="Риск" items={market.byRisk.slice(0, 3)} mode="risk" />
+                <DashboardRanking title="Объём" items={market.byVolume.slice(0, 3)} mode="volume" />
+                <DashboardRanking title="Цена" items={market.byPriceDesc.slice(0, 3)} mode="price" />
             </div>
         </section>
     );
 }
 
-type DashboardStatProps = {
-    label: string;
-    value: string;
-    className?: string;
+type MarketCardProps = {
+    card: MarketCardData;
 };
 
-function DashboardStat({ label, value, className }: DashboardStatProps) {
+function MarketCard({ card }: MarketCardProps) {
+    const content = (
+        <>
+            <span>{card.label}</span>
+            {card.ticker && <em>{card.ticker}</em>}
+            <strong className={card.className}>{card.value}</strong>
+        </>
+    );
+
+    if (!card.ticker) {
+        return <div className="dashboard-market-card">{content}</div>;
+    }
+
     return (
-        <div className="dashboard-stat-card">
-            <span>{label}</span>
-            <strong className={className}>{value}</strong>
-        </div>
+        <Link to={`/assets/${card.ticker}`} className="dashboard-market-card">
+            {content}
+        </Link>
     );
 }
 
@@ -265,10 +298,37 @@ function PulseCard({ label, value, className }: PulseCardProps) {
     );
 }
 
+type SignalCardProps = {
+    label: string;
+    item: AnalyticsSummary | null;
+    value: string;
+    className?: string;
+};
+
+function SignalCard({ label, item, value, className }: SignalCardProps) {
+    if (!item) {
+        return (
+            <div className="dashboard-signal-card">
+                <span>{label}</span>
+                <strong>—</strong>
+                <em>—</em>
+            </div>
+        );
+    }
+
+    return (
+        <Link to={`/assets/${item.ticker}`} className="dashboard-signal-card">
+            <span>{label}</span>
+            <strong>{item.ticker}</strong>
+            <em className={className}>{value}</em>
+        </Link>
+    );
+}
+
 type DashboardRankingProps = {
     title: string;
     items: AnalyticsSummary[];
-    mode: "risk" | "percent";
+    mode: RankingMode;
 };
 
 function DashboardRanking({ title, items, mode }: DashboardRankingProps) {
@@ -285,7 +345,7 @@ function DashboardRanking({ title, items, mode }: DashboardRankingProps) {
                     <Link to={`/assets/${item.ticker}`} className="ranking-row" key={item.ticker}>
                         <span>#{index + 1}</span>
                         <strong>{item.ticker}</strong>
-                        <em className={mode === "percent" && item.priceChangePercent >= 0 ? "positive-value" : mode === "percent" ? "negative-value" : ""}>
+                        <em className={getRankingClassName(item, mode)}>
                             {formatRankingValue(item, mode)}
                         </em>
                     </Link>
@@ -295,69 +355,53 @@ function DashboardRanking({ title, items, mode }: DashboardRankingProps) {
     );
 }
 
-function calculatePortfolioRisk(
-    portfolio: PortfolioSimulator,
-    analyticsByTicker: Record<string, AnalyticsSummary>
-): number {
-    if (portfolio.holdings.length === 0) {
-        return 0;
+function getRankingClassName(item: AnalyticsSummary, mode: RankingMode): string {
+    if (mode !== "percent") {
+        return "";
     }
 
-    const totalValue = portfolio.holdings.reduce((sum, holding) => {
-        return sum + Math.max(holding.currentValue, 0);
-    }, 0);
-
-    if (totalValue <= 0) {
-        return 0;
-    }
-
-    const weightedMarketRisk = portfolio.holdings.reduce((sum, holding) => {
-        const analyticsRisk = analyticsByTicker[holding.ticker]?.riskScore ?? estimateHoldingRisk(holding);
-        const weight = holding.currentValue / totalValue;
-
-        return sum + analyticsRisk * weight;
-    }, 0);
-
-    const largestShare = Math.max(
-        ...portfolio.holdings.map((holding) => holding.currentValue / totalValue)
-    );
-
-    const averagePnlPressure =
-        portfolio.holdings.reduce((sum, holding) => {
-            return sum + Math.min(Math.abs(holding.profitLossPercent), 60);
-        }, 0) / portfolio.holdings.length;
-
-    const concentrationRisk = largestShare * 28;
-    const pnlRisk = averagePnlPressure * 0.45;
-    const complexityRisk = Math.min(18, portfolio.lotsCount * 1.8);
-
-    return clamp(Math.round(weightedMarketRisk * 0.55 + concentrationRisk + pnlRisk + complexityRisk), 0, 100);
+    return item.priceChangePercent >= 0 ? "positive-value" : "negative-value";
 }
 
-function estimateHoldingRisk(holding: PortfolioHoldingView): number {
-    return clamp(Math.round(25 + Math.abs(holding.profitLossPercent) * 1.6), 0, 100);
-}
-
-function calculatePnlPercent(profitLoss: number, invested: number): number {
-    if (invested === 0) {
-        return 0;
-    }
-
-    return (profitLoss / invested) * 100;
-}
-
-function formatRankingValue(item: AnalyticsSummary, mode: "risk" | "percent"): string {
+function formatRankingValue(item: AnalyticsSummary, mode: RankingMode): string {
     if (mode === "risk") {
         return `${item.riskScore}/100`;
+    }
+
+    if (mode === "volatility") {
+        return formatPercent(item.volatilityPercent);
+    }
+
+    if (mode === "volume") {
+        return formatCompactNumber(item.averageVolume);
+    }
+
+    if (mode === "price") {
+        return formatNumber(item.currentPrice);
     }
 
     return formatPercentWithSign(item.priceChangePercent);
 }
 
-function formatMoney(value: number, currency: string): string {
-    return `${new Intl.NumberFormat("ru-RU", {
-        maximumFractionDigits: 4
-    }).format(value)} ${currency}`;
+function average(values: number[]): number {
+    if (values.length === 0) {
+        return 0;
+    }
+
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function formatNumber(value: number): string {
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 8
+    }).format(value);
+}
+
+function formatCompactNumber(value: number): string {
+    return new Intl.NumberFormat("ru-RU", {
+        notation: "compact",
+        maximumFractionDigits: 2
+    }).format(value);
 }
 
 function formatPercent(value: number): string {
@@ -368,8 +412,4 @@ function formatPercent(value: number): string {
 
 function formatPercentWithSign(value: number): string {
     return `${value >= 0 ? "+" : ""}${formatPercent(value)}`;
-}
-
-function clamp(value: number, min: number, max: number): number {
-    return Math.min(Math.max(value, min), max);
 }
