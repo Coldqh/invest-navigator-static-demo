@@ -37,6 +37,7 @@ jobs:
           VITE_YANDEX_GPT_API_KEY: ${{ secrets.VITE_YANDEX_GPT_API_KEY }}
           VITE_YANDEX_GPT_FOLDER_ID: ${{ secrets.VITE_YANDEX_GPT_FOLDER_ID }}
           VITE_YANDEX_GPT_MODEL: ${{ secrets.VITE_YANDEX_GPT_MODEL }}
+          VITE_YANDEX_GPT_PROXY_URL: ${{ secrets.VITE_YANDEX_GPT_PROXY_URL }}
         run: npm run build
 
       - name: Verify dist

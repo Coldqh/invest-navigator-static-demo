@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AiReportPanel } from "../components/AiReportPanel";
 import { getAsset, getAssets } from "../services/assetsService";
-import type { AiReport } from "../services/browserAiService";
+import { generatePortfolioReport, type AiReport } from "../services/browserAiService";
 import { getMarketPrice } from "../services/marketDataService";
-import type { Asset } from "../types/domain";
+import type { Asset, AssetType, PortfolioSimulator } from "../types/domain";
 
 type Currency = "RUB" | "USD";
 type ExpandedPanel = "BUY" | "BALANCE" | null;
@@ -85,7 +85,10 @@ export function PortfolioPage() {
     const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
     const [expandedHoldings, setExpandedHoldings] = useState<Record<string, boolean>>({});
     const [sellQuantities, setSellQuantities] = useState<Record<string, string>>({});
+
     const [report, setReport] = useState<AiReport | null>(null);
+    const [aiError, setAiError] = useState("");
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
 
     const [buyTicker, setBuyTicker] = useState(assets[0]?.ticker ?? "");
     const [buyQuantity, setBuyQuantity] = useState("1");
@@ -139,7 +142,7 @@ export function PortfolioPage() {
     const buyTotalCost = buyCurrentPrice * buyQuantityNumber;
     const buyBalanceAfter = portfolioState.balances[buyCurrency] - buyTotalCost;
 
-    const groupedHoldings = useMemo<GroupedHolding[]>(() => {
+    const groupedHoldings = useMemo<GroupedHolding[]>((() => {
         const groups = new Map<string, PortfolioLot[]>();
 
         portfolioState.lots.forEach((lot) => {
@@ -174,7 +177,7 @@ export function PortfolioPage() {
                 };
             })
             .sort((first, second) => second.currentValue - first.currentValue);
-    }, [portfolioState.lots, prices]);
+    }), [portfolioState.lots, prices]);
 
     const statistics = useMemo(() => {
         const lotsCount = portfolioState.lots.length;
@@ -243,8 +246,28 @@ export function PortfolioPage() {
         }));
     }
 
-    function handleAiReport() {
-        setReport(buildLocalPortfolioReport(groupedHoldings, statistics));
+    async function handleAiReport() {
+        try {
+            setAiError("");
+            setIsGeneratingReport(true);
+
+            const simulator = buildPortfolioSimulator(
+                portfolioState,
+                groupedHoldings,
+                statistics
+            );
+
+            const nextReport = await generatePortfolioReport(simulator);
+            setReport(nextReport);
+        } catch (error: unknown) {
+            setAiError(
+                error instanceof Error
+                    ? error.message
+                    : "Не удалось создать AI-отчёт портфеля"
+            );
+        } finally {
+            setIsGeneratingReport(false);
+        }
     }
 
     function handleBuy() {
@@ -409,14 +432,25 @@ export function PortfolioPage() {
                         Демо счёт
                     </button>
 
-                    <button type="button" className="ghost-button" onClick={handleAiReport}>
-                        AI-анализ
+                    <button
+                        type="button"
+                        className="ghost-button"
+                        onClick={handleAiReport}
+                        disabled={isGeneratingReport}
+                    >
+                        {isGeneratingReport ? "AI думает..." : "AI-анализ"}
                     </button>
 
                     <Link to="/data" className="ghost-button">
                         Данные
                     </Link>
                 </div>
+
+                {aiError && (
+                    <div className="error-block">
+                        {aiError}
+                    </div>
+                )}
 
                 {expandedPanel === "BUY" && (
                     <div className="compact-portfolio-inline-panel">
@@ -716,7 +750,10 @@ export function PortfolioPage() {
                             const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
 
                             return (
-                                <div className={`compact-closed-trade-line ${pnl >= 0 ? "closed-trade-profit" : "closed-trade-loss"}`} key={trade.id}>
+                                <div
+                                    className={`compact-closed-trade-line ${pnl >= 0 ? "closed-trade-profit" : "closed-trade-loss"}`}
+                                    key={trade.id}
+                                >
                                     <strong>
                                         {formatQuantity(trade.quantity)} {trade.ticker}
                                     </strong>
@@ -779,6 +816,132 @@ export function PortfolioPage() {
             </details>
         </section>
     );
+}
+
+function buildPortfolioSimulator(
+    portfolioState: PersistedPortfolioState,
+    groupedHoldings: GroupedHolding[],
+    statistics: {
+        assetsCount: number;
+        lotsCount: number;
+        unrealized: number;
+        realized: number;
+    }
+): PortfolioSimulator {
+    const now = new Date().toISOString();
+
+    const holdings = groupedHoldings.map((group) => {
+        const averageBuyPrice = group.quantity > 0
+            ? group.totalInvested / group.quantity
+            : 0;
+
+        const assetId = group.asset?.id ?? group.ticker;
+        const assetType = (group.asset?.assetType ?? "STOCK") as AssetType;
+        const name = group.asset?.name ?? group.ticker;
+        const exchange = group.asset?.exchange ?? "";
+
+        return {
+            assetId,
+            ticker: group.ticker,
+            name,
+            assetType,
+            exchange,
+            currency: group.currency,
+            totalQuantity: group.quantity,
+            averageBuyPrice,
+            currentPrice: group.currentPrice,
+            investedAmount: group.totalInvested,
+            currentValue: group.currentValue,
+            profitLoss: group.pnl,
+            profitLossPercent: group.pnlPercent,
+            holdingDays: calculateHoldingDays(group.lots.map((lot) => lot.purchasedAt)),
+            currentPriceSource: "SITE",
+            currentPriceTimestamp: now,
+            lots: group.lots.map((lot) => {
+                const investedAmount = lot.quantity * lot.purchasePrice;
+                const currentValue = lot.quantity * group.currentPrice;
+                const profitLoss = currentValue - investedAmount;
+                const profitLossPercent = investedAmount > 0
+                    ? (profitLoss / investedAmount) * 100
+                    : 0;
+
+                return {
+                    id: lot.id,
+                    assetId,
+                    ticker: lot.ticker,
+                    name,
+                    assetType,
+                    exchange,
+                    currency: lot.currency,
+                    originalQuantity: lot.quantity,
+                    remainingQuantity: lot.quantity,
+                    buyPrice: lot.purchasePrice,
+                    buyTotalAmount: investedAmount,
+                    buyPriceSource: "SITE",
+                    buyPriceTimestamp: lot.purchasedAt,
+                    openedAt: lot.purchasedAt,
+                    closedAt: null,
+                    active: true,
+                    currentPrice: group.currentPrice,
+                    investedAmount,
+                    currentValue,
+                    profitLoss,
+                    profitLossPercent,
+                    holdingDays: calculateHoldingDays([lot.purchasedAt]),
+                    currentPriceSource: "SITE",
+                    currentPriceTimestamp: now
+                };
+            })
+        };
+    });
+
+    const totalRubInvested = groupedHoldings
+        .filter((group) => group.currency === "RUB")
+        .reduce((sum, group) => sum + group.totalInvested, 0);
+
+    const totalRubCurrentValue = groupedHoldings
+        .filter((group) => group.currency === "RUB")
+        .reduce((sum, group) => sum + group.currentValue, 0);
+
+    const totalUsdInvested = groupedHoldings
+        .filter((group) => group.currency === "USD")
+        .reduce((sum, group) => sum + group.totalInvested, 0);
+
+    const totalUsdCurrentValue = groupedHoldings
+        .filter((group) => group.currency === "USD")
+        .reduce((sum, group) => sum + group.currentValue, 0);
+
+    return {
+        account: {
+            rubBalance: portfolioState.balances.RUB,
+            usdBalance: portfolioState.balances.USD,
+            updatedAt: now
+        },
+        totalRubInvested,
+        totalRubCurrentValue,
+        totalRubProfitLoss: totalRubCurrentValue - totalRubInvested,
+        totalUsdInvested,
+        totalUsdCurrentValue,
+        totalUsdProfitLoss: totalUsdCurrentValue - totalUsdInvested,
+        assetsCount: statistics.assetsCount,
+        lotsCount: statistics.lotsCount,
+        holdings,
+        transactions: portfolioState.transactions
+            .filter((transaction) => transaction.type === "BUY" || transaction.type === "SELL")
+            .map((transaction) => ({
+                id: transaction.id,
+                ticker: transaction.ticker ?? "",
+                name: transaction.ticker ?? "",
+                currency: transaction.currency,
+                transactionType: transaction.type === "SELL" ? "SELL" : "BUY",
+                quantity: transaction.quantity ?? 0,
+                price: transaction.price ?? 0,
+                totalAmount: transaction.amount,
+                executedAt: transaction.createdAt,
+                note: null
+            })),
+        calculatedAt: now
+    };
 }
 
 function loadPortfolioState(): PersistedPortfolioState {
@@ -924,53 +1087,6 @@ function createTransaction(data: Omit<PortfolioTransaction, "id" | "createdAt">)
     };
 }
 
-function buildLocalPortfolioReport(
-    groups: GroupedHolding[],
-    statistics: {
-        assetsCount: number;
-        lotsCount: number;
-        unrealized: number;
-        realized: number;
-    }
-): AiReport {
-    const best = [...groups].sort((first, second) => second.pnlPercent - first.pnlPercent)[0] ?? null;
-    const worst = [...groups].sort((first, second) => first.pnlPercent - second.pnlPercent)[0] ?? null;
-    const concentration = groups.length === 0
-        ? 0
-        : Math.max(...groups.map((group) => group.currentValue)) /
-        Math.max(groups.reduce((sum, group) => sum + group.currentValue, 0), 1);
-
-    const riskScore = clamp(
-        Math.round(concentration * 55 + Math.min(statistics.lotsCount * 4, 25)),
-        0,
-        100
-    );
-
-    return {
-        provider: "MOCK",
-        verdict: groups.length === 0 ? "Портфель пуст" : "Портфель собран",
-        summary: `${statistics.assetsCount} активов, ${statistics.lotsCount} лотов, открытый результат ${formatMoney(statistics.unrealized, detectMainCurrency(groups))}.`,
-        positiveFactors: [
-            best ? `Лучший актив: ${best.ticker} ${formatPercentWithSign(best.pnlPercent)}.` : "Пока нет открытых позиций.",
-            statistics.lotsCount > statistics.assetsCount ? "Есть несколько точек входа." : "Структура простая.",
-            statistics.realized >= 0 ? "Закрытые сделки не давят на результат." : "Есть история закрытых сделок."
-        ],
-        negativeFactors: [
-            worst ? `Слабый актив: ${worst.ticker} ${formatPercentWithSign(worst.pnlPercent)}.` : "Слабые активы пока не выделены.",
-            concentration > 0.6 ? "Есть сильная концентрация в одном активе." : "Концентрация умеренная.",
-            "Новости и фундаментальные события не учитываются."
-        ],
-        actionItems: [
-            "Проверить крупнейшую позицию.",
-            "Сравнить лучший и худший актив.",
-            "Оценить размер нового входа перед покупкой."
-        ],
-        riskScore,
-        riskLevel: riskScore >= 80 ? "CRITICAL" : riskScore >= 60 ? "HIGH" : riskScore >= 35 ? "MEDIUM" : "LOW",
-        disclaimer: "Не инвестиционная рекомендация."
-    };
-}
-
 function parsePositiveNumber(value: string): number {
     const parsed = Number(value);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
@@ -993,12 +1109,19 @@ function detectMainCurrency(groups: GroupedHolding[]): Currency {
     return usdValue > rubValue ? "USD" : "RUB";
 }
 
-function cryptoRandomId(): string {
-    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+function calculateHoldingDays(dates: string[]): number {
+    if (dates.length === 0) {
+        return 0;
+    }
+
+    const oldest = Math.min(...dates.map((date) => new Date(date).getTime()));
+    const diff = Date.now() - oldest;
+
+    return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 }
 
-function clamp(value: number, min: number, max: number): number {
-    return Math.min(Math.max(value, min), max);
+function cryptoRandomId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function translateTransactionType(type: PortfolioTransaction["type"]): string {
