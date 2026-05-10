@@ -73,8 +73,8 @@ export function DashboardPage() {
                 ? growthLeader.priceChangePercent - fallLeader.priceChangePercent
                 : 0;
 
-        const riskGrowthMismatch = [...analytics]
-            .sort((first, second) => {
+        const riskGrowthMismatch =
+            [...analytics].sort((first, second) => {
                 const firstScore = first.riskScore - Math.max(first.priceChangePercent, 0) * 2;
                 const secondScore = second.riskScore - Math.max(second.priceChangePercent, 0) * 2;
 
@@ -174,68 +174,88 @@ export function DashboardPage() {
 
     return (
         <section className="page dashboard-page">
-            <div className="dashboard-hero dashboard-hero-clean">
+            <div className="dashboard-hero dashboard-hero-clean compact-hero">
                 <div>
                     <p className="eyebrow">Dashboard</p>
                     <h1>Invest Navigator AI</h1>
                 </div>
             </div>
 
-            <div className="dashboard-market-grid">
+            <div className="dashboard-market-grid compact-market-grid">
                 {marketCards.map((card) => (
                     <MarketCard key={card.label} card={card} />
                 ))}
             </div>
 
-            <div className="dashboard-grid dashboard-grid-market">
-                <article className="panel dashboard-market-pulse-panel">
-                    <div className="panel-header">
-                        <div>
-                            <h2>Рыночная ширина</h2>
-                        </div>
+            <details className="panel compact-disclosure compact-disclosure-dashboard" open>
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>Рыночная ширина</h2>
+                        <span>
+                            ↑ {market.gainers} · ↓ {market.losers} · = {market.neutral} · риск {Math.round(market.averageRisk)}/100
+                        </span>
                     </div>
+                </summary>
 
-                    <div className="dashboard-pulse-grid">
+                <div className="compact-disclosure-body">
+                    <div className="dashboard-pulse-grid compact-pulse-grid">
                         <PulseCard label="Растут" value={String(market.gainers)} className="positive-value" />
                         <PulseCard label="Падают" value={String(market.losers)} className="negative-value" />
                         <PulseCard label="Нейтрально" value={String(market.neutral)} />
                         <PulseCard label="Средний рост" value={formatPercentWithSign(market.averageGrowth)} />
                         <PulseCard label="Средняя волатильность" value={formatPercent(market.averageVolatility)} />
                         <PulseCard label="Средний риск" value={`${Math.round(market.averageRisk)}/100`} />
-                        <PulseCard label="Риск-давление" value={`${market.riskPressure} активов`} />
+                        <PulseCard label="Риск-давление" value={`${market.riskPressure}`} />
                         <PulseCard
                             label="Риск без импульса"
                             value={market.riskGrowthMismatch ? market.riskGrowthMismatch.ticker : "—"}
                         />
                     </div>
-                </article>
+                </div>
+            </details>
 
-                <article className="panel dashboard-signal-panel">
-                    <div className="panel-header">
-                        <div>
-                            <h2>Сигналы рынка</h2>
-                        </div>
+            <details className="panel compact-disclosure compact-disclosure-dashboard">
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>Сигналы рынка</h2>
+                        <span>
+                            Лидер: {market.growthLeader?.ticker ?? "—"} · Просадка: {market.fallLeader?.ticker ?? "—"}
+                        </span>
                     </div>
+                </summary>
 
-                    <div className="dashboard-signal-grid">
+                <div className="compact-disclosure-body">
+                    <div className="dashboard-signal-grid compact-signal-grid">
                         <SignalCard
                             label="Импульс"
                             item={market.growthLeader}
-                            value={market.growthLeader ? formatPercentWithSign(market.growthLeader.priceChangePercent) : "—"}
+                            value={
+                                market.growthLeader
+                                    ? formatPercentWithSign(market.growthLeader.priceChangePercent)
+                                    : "—"
+                            }
                             className="positive-value"
                         />
 
                         <SignalCard
                             label="Просадка"
                             item={market.fallLeader}
-                            value={market.fallLeader ? formatPercentWithSign(market.fallLeader.priceChangePercent) : "—"}
+                            value={
+                                market.fallLeader
+                                    ? formatPercentWithSign(market.fallLeader.priceChangePercent)
+                                    : "—"
+                            }
                             className="negative-value"
                         />
 
                         <SignalCard
                             label="Нерв рынка"
                             item={market.volatilityLeader}
-                            value={market.volatilityLeader ? formatPercent(market.volatilityLeader.volatilityPercent) : "—"}
+                            value={
+                                market.volatilityLeader
+                                    ? formatPercent(market.volatilityLeader.volatilityPercent)
+                                    : "—"
+                            }
                         />
 
                         <SignalCard
@@ -244,17 +264,28 @@ export function DashboardPage() {
                             value={market.riskLeader ? `${market.riskLeader.riskScore}/100` : "—"}
                         />
                     </div>
-                </article>
-            </div>
+                </div>
+            </details>
 
-            <div className="dashboard-grid dashboard-grid-main">
-                <DashboardRanking title="Рост" items={market.byGrowth.slice(0, 3)} mode="percent" />
-                <DashboardRanking title="Падение" items={market.byFall.slice(0, 3)} mode="percent" />
-                <DashboardRanking title="Волатильность" items={market.byVolatility.slice(0, 3)} mode="volatility" />
-                <DashboardRanking title="Риск" items={market.byRisk.slice(0, 3)} mode="risk" />
-                <DashboardRanking title="Объём" items={market.byVolume.slice(0, 3)} mode="volume" />
-                <DashboardRanking title="Цена" items={market.byPriceDesc.slice(0, 3)} mode="price" />
-            </div>
+            <details className="panel compact-disclosure compact-disclosure-dashboard">
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>Топы рынка</h2>
+                        <span>Рост · Падение · Волатильность · Риск · Объём · Цена</span>
+                    </div>
+                </summary>
+
+                <div className="compact-disclosure-body">
+                    <div className="dashboard-grid dashboard-grid-main compact-dashboard-rankings">
+                        <DashboardRanking title="Рост" items={market.byGrowth.slice(0, 3)} mode="percent" />
+                        <DashboardRanking title="Падение" items={market.byFall.slice(0, 3)} mode="percent" />
+                        <DashboardRanking title="Волатильность" items={market.byVolatility.slice(0, 3)} mode="volatility" />
+                        <DashboardRanking title="Риск" items={market.byRisk.slice(0, 3)} mode="risk" />
+                        <DashboardRanking title="Объём" items={market.byVolume.slice(0, 3)} mode="volume" />
+                        <DashboardRanking title="Цена" items={market.byPriceDesc.slice(0, 3)} mode="price" />
+                    </div>
+                </div>
+            </details>
         </section>
     );
 }
@@ -273,11 +304,11 @@ function MarketCard({ card }: MarketCardProps) {
     );
 
     if (!card.ticker) {
-        return <div className="dashboard-market-card">{content}</div>;
+        return <div className="dashboard-market-card compact-market-card">{content}</div>;
     }
 
     return (
-        <Link to={`/assets/${card.ticker}`} className="dashboard-market-card">
+        <Link to={`/assets/${card.ticker}`} className="dashboard-market-card compact-market-card">
             {content}
         </Link>
     );
@@ -291,7 +322,7 @@ type PulseCardProps = {
 
 function PulseCard({ label, value, className }: PulseCardProps) {
     return (
-        <div className="dashboard-pulse-card">
+        <div className="dashboard-pulse-card compact-mini-card">
             <span>{label}</span>
             <strong className={className}>{value}</strong>
         </div>
@@ -308,7 +339,7 @@ type SignalCardProps = {
 function SignalCard({ label, item, value, className }: SignalCardProps) {
     if (!item) {
         return (
-            <div className="dashboard-signal-card">
+            <div className="dashboard-signal-card compact-mini-card">
                 <span>{label}</span>
                 <strong>—</strong>
                 <em>—</em>
@@ -317,7 +348,7 @@ function SignalCard({ label, item, value, className }: SignalCardProps) {
     }
 
     return (
-        <Link to={`/assets/${item.ticker}`} className="dashboard-signal-card">
+        <Link to={`/assets/${item.ticker}`} className="dashboard-signal-card compact-mini-card">
             <span>{label}</span>
             <strong>{item.ticker}</strong>
             <em className={className}>{value}</em>
@@ -333,8 +364,8 @@ type DashboardRankingProps = {
 
 function DashboardRanking({ title, items, mode }: DashboardRankingProps) {
     return (
-        <article className="panel dashboard-ranking-panel">
-            <div className="panel-header">
+        <article className="panel dashboard-ranking-panel compact-ranking-panel">
+            <div className="panel-header compact-panel-header">
                 <div>
                     <h2>{title}</h2>
                 </div>
@@ -342,7 +373,7 @@ function DashboardRanking({ title, items, mode }: DashboardRankingProps) {
 
             <div className="ranking-list">
                 {items.map((item, index) => (
-                    <Link to={`/assets/${item.ticker}`} className="ranking-row" key={item.ticker}>
+                    <Link to={`/assets/${item.ticker}`} className="ranking-row compact-ranking-row" key={item.ticker}>
                         <span>#{index + 1}</span>
                         <strong>{item.ticker}</strong>
                         <em className={getRankingClassName(item, mode)}>

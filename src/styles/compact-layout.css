@@ -1,0 +1,606 @@
+.page {
+    gap: 14px;
+}
+
+.compact-hero {
+    min-height: 120px;
+    padding: 20px 24px;
+    border-radius: 24px;
+}
+
+.compact-panel,
+.compact-list-panel,
+.compact-ranking-panel,
+.compact-disclosure {
+    padding: 16px;
+    border-radius: 22px;
+}
+
+.compact-panel-header {
+    margin-bottom: 10px;
+}
+
+.compact-panel-header h2,
+.compact-disclosure-summary h2 {
+    margin: 0;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.compact-market-grid,
+.assets-overview-grid-compact,
+.compact-summary-grid {
+    gap: 10px;
+}
+
+.compact-market-card,
+.compact-stat-card,
+.compact-mini-card,
+.compact-small-card {
+    min-height: auto;
+    padding: 14px 16px;
+    border-radius: 16px;
+}
+
+.compact-market-card strong {
+    font-size: 22px;
+}
+
+.compact-market-card em {
+    font-size: 18px;
+}
+
+.compact-disclosure {
+    min-width: 0;
+}
+
+.compact-disclosure summary {
+    list-style: none;
+    cursor: pointer;
+}
+
+.compact-disclosure summary::-webkit-details-marker {
+    display: none;
+}
+
+.compact-disclosure-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0;
+}
+
+.compact-disclosure-summary > div {
+    display: grid;
+    gap: 6px;
+}
+
+.compact-disclosure-summary span {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.compact-disclosure-summary::after {
+    content: "▾";
+    color: #94a3b8;
+    font-size: 16px;
+    transition: transform 0.2s ease;
+}
+
+.compact-disclosure[open] .compact-disclosure-summary::after {
+    transform: rotate(180deg);
+}
+
+.compact-disclosure-body {
+    margin-top: 12px;
+}
+
+.compact-pulse-grid,
+.compact-signal-grid,
+.compact-dashboard-rankings {
+    gap: 10px;
+}
+
+.compact-ranking-row {
+    padding: 10px 12px;
+    border-radius: 14px;
+}
+
+.compact-ranking-row span,
+.compact-ranking-row strong,
+.compact-ranking-row em {
+    font-size: 14px;
+}
+
+.compact-assets-controls {
+    gap: 10px;
+}
+
+.asset-compact-list {
+    display: grid;
+    gap: 8px;
+}
+
+.asset-compact-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.05), transparent 10rem),
+            rgba(2, 6, 23, 0.28);
+}
+
+.asset-compact-main {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.asset-compact-main strong {
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 24px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-compact-main span {
+    overflow: hidden;
+    color: #94a3b8;
+    font-size: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.asset-compact-side {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.asset-compact-source {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    border: 1px solid rgba(148, 163, 184, 0.16);
+    background: rgba(15, 23, 42, 0.58);
+}
+
+.asset-compact-price {
+    display: grid;
+    justify-items: end;
+    gap: 2px;
+}
+
+.asset-compact-price strong {
+    color: #f8fafc;
+    font-size: 18px;
+    white-space: nowrap;
+}
+
+.asset-compact-price span {
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.compact-portfolio-top-grid {
+    gap: 12px;
+}
+
+.compact-account-grid {
+    gap: 10px;
+}
+
+.compact-form-grid {
+    gap: 10px;
+}
+
+.compact-calculator-grid {
+    gap: 10px;
+}
+
+.compact-holdings {
+    gap: 10px;
+}
+
+.portfolio-holding-scroll {
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.compact-portfolio-line {
+    min-height: auto;
+    padding: 12px 14px;
+    border-radius: 16px;
+}
+
+.compact-portfolio-metrics {
+    gap: 10px;
+}
+
+.compact-portfolio-actions {
+    gap: 8px;
+}
+
+.compact-lot-list {
+    gap: 8px;
+    padding-left: 0;
+    margin-top: 8px;
+}
+
+.compact-secondary-list {
+    display: grid;
+    gap: 8px;
+}
+
+.compact-secondary-card {
+    padding: 12px 14px;
+    border-radius: 16px;
+}
+
+@media (max-width: 1100px) {
+    .sidebar {
+        padding: 10px 12px;
+    }
+
+    .brand {
+        gap: 10px;
+        align-items: center;
+    }
+
+    .brand > span {
+        width: 34px;
+        height: 34px;
+        border-radius: 12px;
+        font-size: 13px;
+    }
+
+    .brand strong {
+        font-size: 13px;
+    }
+
+    .brand small {
+        display: none;
+    }
+
+    .nav {
+        gap: 6px;
+        padding-bottom: 2px;
+    }
+
+    .nav a {
+        min-height: 34px;
+        padding: 8px 12px;
+        border-radius: 14px;
+        font-size: 13px;
+    }
+
+    .main-content {
+        padding: 12px;
+    }
+
+    .page {
+        gap: 12px;
+    }
+
+    .compact-hero {
+        min-height: 84px;
+        padding: 14px 16px;
+    }
+
+    .dashboard-market-grid,
+    .assets-overview-grid,
+    .summary-grid,
+    .dashboard-pulse-grid,
+    .dashboard-signal-grid,
+    .dashboard-grid-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .compact-market-card,
+    .compact-stat-card,
+    .compact-mini-card,
+    .compact-small-card,
+    .summary-card,
+    .dashboard-market-card,
+    .dashboard-pulse-card,
+    .dashboard-signal-card,
+    .portfolio-account-card,
+    .portfolio-calculator-metric {
+        min-height: auto;
+        padding: 12px 14px;
+    }
+
+    .dashboard-market-card strong,
+    .dashboard-pulse-card strong,
+    .dashboard-signal-card strong,
+    .summary-card strong,
+    .portfolio-account-card strong,
+    .portfolio-calculator-metric strong {
+        font-size: 20px;
+    }
+
+    .dashboard-market-card span,
+    .dashboard-pulse-card span,
+    .dashboard-signal-card span,
+    .summary-card span,
+    .portfolio-account-card span,
+    .portfolio-calculator-metric span {
+        font-size: 11px;
+    }
+
+    .asset-compact-row {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+    }
+
+    .asset-compact-side {
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .asset-compact-main strong {
+        font-size: 22px;
+    }
+
+    .asset-compact-price {
+        justify-items: start;
+    }
+
+    .asset-compact-price strong {
+        font-size: 17px;
+    }
+
+    .portfolio-top-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .portfolio-account-grid,
+    .portfolio-account-form,
+    .portfolio-buy-form,
+    .portfolio-buy-calculator {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .portfolio-buy-calculator {
+        grid-column: 1 / -1;
+    }
+
+    .portfolio-line,
+    .compact-portfolio-line {
+        grid-template-columns: 220px minmax(620px, 1fr) auto !important;
+        align-items: center;
+        gap: 12px;
+        min-width: 980px;
+    }
+
+    .portfolio-line-title strong {
+        font-size: 20px;
+        white-space: nowrap;
+    }
+
+    .portfolio-line-title span {
+        white-space: nowrap;
+    }
+
+    .portfolio-line-metrics,
+    .compact-portfolio-metrics {
+        grid-template-columns: repeat(6, minmax(90px, 1fr)) !important;
+        gap: 10px;
+    }
+
+    .portfolio-line-actions,
+    .compact-portfolio-actions {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+
+    .compact-sell-actions input {
+        width: 110px;
+    }
+
+    .closed-trade-card,
+    .portfolio-transaction-card {
+        grid-template-columns: 140px repeat(5, minmax(110px, 1fr)) !important;
+        gap: 10px;
+        min-width: 860px;
+    }
+
+    .closed-trade-list,
+    .portfolio-transaction-list {
+        overflow-x: auto;
+        gap: 8px;
+        padding-bottom: 2px;
+    }
+}
+
+@media (max-width: 700px) {
+    h1 {
+        font-size: 30px;
+    }
+
+    .panel,
+    .compact-panel,
+    .compact-disclosure {
+        padding: 12px;
+        border-radius: 18px;
+    }
+
+    .compact-panel-header h2,
+    .compact-disclosure-summary h2 {
+        font-size: 20px;
+    }
+
+    .dashboard-market-grid,
+    .assets-overview-grid,
+    .summary-grid,
+    .dashboard-pulse-grid,
+    .dashboard-signal-grid,
+    .dashboard-grid-main {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .compact-disclosure-summary span {
+        font-size: 11px;
+    }
+
+    .asset-compact-main strong {
+        font-size: 20px;
+    }
+
+    .asset-compact-main span {
+        font-size: 13px;
+    }
+
+    .asset-compact-source {
+        min-height: 24px;
+        padding: 0 8px;
+        font-size: 10px;
+    }
+
+    .portfolio-account-grid,
+    .portfolio-account-form,
+    .portfolio-buy-form,
+    .portfolio-buy-calculator {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-account-form button[type="submit"],
+    .portfolio-buy-form button[type="submit"],
+    .hero-actions .primary-button,
+    .hero-actions .ghost-button {
+        width: 100%;
+    }
+
+    .hero-actions {
+        gap: 8px;
+    }
+}
+
+@media (max-width: 520px) {
+    .main-content {
+        padding: 10px;
+    }
+
+    .page {
+        gap: 10px;
+    }
+
+    .compact-hero {
+        min-height: 72px;
+        padding: 12px 14px;
+    }
+
+    .dashboard-market-grid,
+    .assets-overview-grid,
+    .summary-grid,
+    .dashboard-pulse-grid,
+    .dashboard-signal-grid,
+    .dashboard-grid-main {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .dashboard-market-card strong,
+    .dashboard-pulse-card strong,
+    .dashboard-signal-card strong,
+    .summary-card strong,
+    .portfolio-account-card strong,
+    .portfolio-calculator-metric strong {
+        font-size: 18px;
+    }
+
+    .dashboard-market-card em {
+        font-size: 16px;
+    }
+
+    .compact-market-card,
+    .compact-stat-card,
+    .compact-mini-card,
+    .compact-small-card,
+    .summary-card,
+    .dashboard-market-card,
+    .dashboard-pulse-card,
+    .dashboard-signal-card,
+    .portfolio-account-card,
+    .portfolio-calculator-metric,
+    .asset-compact-row {
+        padding: 10px 12px;
+        border-radius: 14px;
+    }
+
+    .asset-compact-row {
+        gap: 6px;
+    }
+
+    .asset-compact-main strong {
+        font-size: 18px;
+    }
+
+    .asset-compact-main span {
+        font-size: 12px;
+    }
+
+    .asset-compact-price strong {
+        font-size: 15px;
+    }
+
+    .compact-disclosure-summary {
+        gap: 10px;
+    }
+
+    .compact-disclosure-summary span {
+        font-size: 10px;
+    }
+
+    .portfolio-line,
+    .compact-portfolio-line {
+        min-width: 920px;
+        padding: 10px 12px;
+    }
+
+    .portfolio-line-title strong {
+        font-size: 18px;
+    }
+
+    .portfolio-inline-metric span,
+    .portfolio-calculator-metric span {
+        font-size: 10px;
+    }
+
+    .portfolio-inline-metric strong,
+    .portfolio-calculator-metric strong {
+        font-size: 13px;
+        white-space: nowrap;
+    }
+
+    .closed-trade-card,
+    .portfolio-transaction-card {
+        min-width: 820px;
+        padding: 10px 12px;
+    }
+}

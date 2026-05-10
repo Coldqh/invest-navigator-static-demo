@@ -176,13 +176,21 @@ export function PortfolioPage() {
         const rubTrades = closedTrades.filter((trade) => trade.currency === "RUB");
         const usdTrades = closedTrades.filter((trade) => trade.currency === "USD");
 
-        const bestTrade = closedTrades.length === 0
-            ? null
-            : [...closedTrades].sort((first, second) => second.realizedProfitLossPercent - first.realizedProfitLossPercent)[0];
+        const bestTrade =
+            closedTrades.length === 0
+                ? null
+                : [...closedTrades].sort(
+                    (first, second) =>
+                        second.realizedProfitLossPercent - first.realizedProfitLossPercent
+                )[0];
 
-        const worstTrade = closedTrades.length === 0
-            ? null
-            : [...closedTrades].sort((first, second) => first.realizedProfitLossPercent - second.realizedProfitLossPercent)[0];
+        const worstTrade =
+            closedTrades.length === 0
+                ? null
+                : [...closedTrades].sort(
+                    (first, second) =>
+                        first.realizedProfitLossPercent - second.realizedProfitLossPercent
+                )[0];
 
         return {
             rubRealized: rubTrades.reduce((sum, trade) => sum + trade.realizedProfitLoss, 0),
@@ -199,6 +207,14 @@ export function PortfolioPage() {
 
         return simulator.transactions.slice(0, 8);
     }, [simulator]);
+
+    const bestTradeSummary = realizedStats.bestTrade
+        ? `${realizedStats.bestTrade.ticker} · ${formatPercent(realizedStats.bestTrade.realizedProfitLossPercent)}`
+        : "—";
+
+    const worstTradeSummary = realizedStats.worstTrade
+        ? `${realizedStats.worstTrade.ticker} · ${formatPercent(realizedStats.worstTrade.realizedProfitLossPercent)}`
+        : "—";
 
     if (isLoading || !simulator) {
         return <LoadingBlock text="Загружаем портфель..." />;
@@ -234,21 +250,21 @@ export function PortfolioPage() {
 
             {error && <div className="error-block">{error}</div>}
 
-            <div className="portfolio-top-grid">
-                <article className="panel portfolio-account-panel">
-                    <div className="panel-header">
+            <div className="portfolio-top-grid compact-portfolio-top-grid">
+                <article className="panel portfolio-account-panel compact-panel">
+                    <div className="panel-header compact-panel-header">
                         <div>
                             <h2>Счёт</h2>
                         </div>
                     </div>
 
-                    <div className="portfolio-account-grid">
+                    <div className="portfolio-account-grid compact-account-grid">
                         <AccountCard label="RUB" value={formatMoney(simulator.account.rubBalance, "RUB")} />
                         <AccountCard label="USD" value={formatMoney(simulator.account.usdBalance, "USD")} />
 
-                        <form className="portfolio-account-form" onSubmit={handleSaveAccount}>
+                        <form className="portfolio-account-form compact-form-grid" onSubmit={handleSaveAccount}>
                             <label>
-                                RUB баланс
+                                <span>RUB баланс</span>
                                 <input
                                     value={rubBalance}
                                     type="number"
@@ -259,7 +275,7 @@ export function PortfolioPage() {
                             </label>
 
                             <label>
-                                USD баланс
+                                <span>USD баланс</span>
                                 <input
                                     value={usdBalance}
                                     type="number"
@@ -276,16 +292,16 @@ export function PortfolioPage() {
                     </div>
                 </article>
 
-                <article className="panel portfolio-buy-panel">
-                    <div className="panel-header">
+                <article className="panel portfolio-buy-panel compact-panel">
+                    <div className="panel-header compact-panel-header">
                         <div>
                             <h2>Покупка</h2>
                         </div>
                     </div>
 
-                    <form className="portfolio-buy-form" onSubmit={handleBuy}>
+                    <form className="portfolio-buy-form compact-form-grid" onSubmit={handleBuy}>
                         <label>
-                            Актив
+                            <span>Актив</span>
                             <select
                                 value={buyTicker}
                                 onChange={(event) => setBuyTicker(event.target.value)}
@@ -299,7 +315,7 @@ export function PortfolioPage() {
                         </label>
 
                         <label>
-                            Количество
+                            <span>Количество</span>
                             <input
                                 value={buyQuantity}
                                 type="number"
@@ -313,7 +329,7 @@ export function PortfolioPage() {
                             Купить
                         </button>
 
-                        <div className="portfolio-buy-calculator">
+                        <div className="portfolio-buy-calculator compact-calculator-grid">
                             <CalculatorMetric
                                 label="Цена"
                                 value={buyQuote && selectedAsset ? formatMoney(buyQuote.price, selectedAsset.currency) : "—"}
@@ -332,40 +348,8 @@ export function PortfolioPage() {
                 </article>
             </div>
 
-            {report && (
-                <AiReportPanel
-                    title="AI-анализ портфеля"
-                    report={report}
-                />
-            )}
-
-            <div className="summary-grid portfolio-summary-grid">
-                <Summary label="Активов" value={String(simulator.assetsCount)} />
-                <Summary label="Лотов" value={String(simulator.lotsCount)} />
-                <Summary
-                    label="RUB Unrealized"
-                    value={formatMoney(simulator.totalRubProfitLoss, "RUB")}
-                    className={simulator.totalRubProfitLoss >= 0 ? "positive-value" : "negative-value"}
-                />
-                <Summary
-                    label="USD Unrealized"
-                    value={formatMoney(simulator.totalUsdProfitLoss, "USD")}
-                    className={simulator.totalUsdProfitLoss >= 0 ? "positive-value" : "negative-value"}
-                />
-                <Summary
-                    label="RUB Realized"
-                    value={formatMoney(realizedStats.rubRealized, "RUB")}
-                    className={realizedStats.rubRealized >= 0 ? "positive-value" : "negative-value"}
-                />
-                <Summary
-                    label="USD Realized"
-                    value={formatMoney(realizedStats.usdRealized, "USD")}
-                    className={realizedStats.usdRealized >= 0 ? "positive-value" : "negative-value"}
-                />
-            </div>
-
-            <article className="panel">
-                <div className="panel-header">
+            <article className="panel compact-panel">
+                <div className="panel-header compact-panel-header">
                     <div>
                         <h2>Активы и лоты</h2>
                     </div>
@@ -374,16 +358,16 @@ export function PortfolioPage() {
                 {simulator.holdings.length === 0 ? (
                     <div className="empty-state">Портфель пустой</div>
                 ) : (
-                    <div className="portfolio-simulator-holdings">
+                    <div className="portfolio-simulator-holdings compact-holdings">
                         {simulator.holdings.map((holding) => (
-                            <div className="portfolio-holding-group" key={holding.assetId}>
-                                <div className="portfolio-line portfolio-holding-line">
+                            <div className="portfolio-holding-group portfolio-holding-scroll" key={holding.assetId}>
+                                <div className="portfolio-line portfolio-holding-line compact-portfolio-line">
                                     <div className="portfolio-line-title">
                                         <strong>{formatNumber(holding.totalQuantity)} {holding.ticker}</strong>
                                         <span>{holding.name}</span>
                                     </div>
 
-                                    <div className="portfolio-line-metrics">
+                                    <div className="portfolio-line-metrics compact-portfolio-metrics">
                                         <InlineMetric label="Средняя" value={formatMoney(holding.averageBuyPrice, holding.currency)} />
                                         <InlineMetric label="Сейчас" value={formatMoney(holding.currentPrice, holding.currency)} />
                                         <InlineMetric label="Вложено" value={formatMoney(holding.investedAmount, holding.currency)} />
@@ -396,7 +380,7 @@ export function PortfolioPage() {
                                         <InlineMetric label="Источник" value={holding.currentPriceSource} />
                                     </div>
 
-                                    <div className="portfolio-line-actions">
+                                    <div className="portfolio-line-actions compact-portfolio-actions">
                                         <button
                                             type="button"
                                             className="ghost-button"
@@ -408,10 +392,12 @@ export function PortfolioPage() {
                                         <button
                                             type="button"
                                             className="primary-button"
-                                            onClick={() => setExpandedTickers((current) => ({
-                                                ...current,
-                                                [holding.ticker]: !current[holding.ticker]
-                                            }))}
+                                            onClick={() =>
+                                                setExpandedTickers((current) => ({
+                                                    ...current,
+                                                    [holding.ticker]: !current[holding.ticker]
+                                                }))
+                                            }
                                         >
                                             {expandedTickers[holding.ticker] ? "Свернуть" : "Развернуть"}
                                         </button>
@@ -419,55 +405,60 @@ export function PortfolioPage() {
                                 </div>
 
                                 {expandedTickers[holding.ticker] && (
-                                    <div className="portfolio-lot-list">
+                                    <div className="portfolio-lot-list compact-lot-list">
                                         {holding.lots.map((lot) => {
                                             const sellQuantity = Number(sellQuantities[lot.id] ?? 0);
-                                            const sellAmount = Number.isFinite(sellQuantity) && sellQuantity > 0
-                                                ? sellQuantity * lot.currentPrice
-                                                : 0;
+                                            const sellAmount =
+                                                Number.isFinite(sellQuantity) && sellQuantity > 0
+                                                    ? sellQuantity * lot.currentPrice
+                                                    : 0;
 
                                             return (
-                                                <div className="portfolio-line portfolio-lot-line" key={lot.id}>
-                                                    <div className="portfolio-line-title">
-                                                        <strong>
-                                                            {formatNumber(lot.remainingQuantity)} {lot.ticker} {formatDateTime(lot.openedAt)}
-                                                        </strong>
-                                                    </div>
+                                                <div className="portfolio-holding-scroll" key={lot.id}>
+                                                    <div className="portfolio-line portfolio-lot-line compact-portfolio-line">
+                                                        <div className="portfolio-line-title">
+                                                            <strong>
+                                                                {formatNumber(lot.remainingQuantity)} {lot.ticker} {formatDateTime(lot.openedAt)}
+                                                            </strong>
+                                                        </div>
 
-                                                    <div className="portfolio-line-metrics">
-                                                        <InlineMetric label="Покупка" value={formatMoney(lot.buyPrice, lot.currency)} />
-                                                        <InlineMetric label="Сейчас" value={formatMoney(lot.currentPrice, lot.currency)} />
-                                                        <InlineMetric label="Вложено" value={formatMoney(lot.investedAmount, lot.currency)} />
-                                                        <InlineMetric label="Стоимость" value={formatMoney(lot.currentValue, lot.currency)} />
-                                                        <InlineMetric
-                                                            label="PnL"
-                                                            value={`${formatMoney(lot.profitLoss, lot.currency)} · ${formatPercent(lot.profitLossPercent)}`}
-                                                            className={lot.profitLoss >= 0 ? "positive-value" : "negative-value"}
-                                                        />
-                                                        <InlineMetric label="Получишь" value={formatMoney(sellAmount, lot.currency)} />
-                                                    </div>
+                                                        <div className="portfolio-line-metrics compact-portfolio-metrics">
+                                                            <InlineMetric label="Покупка" value={formatMoney(lot.buyPrice, lot.currency)} />
+                                                            <InlineMetric label="Сейчас" value={formatMoney(lot.currentPrice, lot.currency)} />
+                                                            <InlineMetric label="Вложено" value={formatMoney(lot.investedAmount, lot.currency)} />
+                                                            <InlineMetric label="Стоимость" value={formatMoney(lot.currentValue, lot.currency)} />
+                                                            <InlineMetric
+                                                                label="PnL"
+                                                                value={`${formatMoney(lot.profitLoss, lot.currency)} · ${formatPercent(lot.profitLossPercent)}`}
+                                                                className={lot.profitLoss >= 0 ? "positive-value" : "negative-value"}
+                                                            />
+                                                            <InlineMetric label="Получишь" value={formatMoney(sellAmount, lot.currency)} />
+                                                        </div>
 
-                                                    <div className="portfolio-line-actions portfolio-line-sell-actions">
-                                                        <input
-                                                            type="number"
-                                                            min="0"
-                                                            max={lot.remainingQuantity}
-                                                            step="0.0001"
-                                                            value={sellQuantities[lot.id] ?? ""}
-                                                            placeholder="Кол-во"
-                                                            onChange={(event) => setSellQuantities((current) => ({
-                                                                ...current,
-                                                                [lot.id]: event.target.value
-                                                            }))}
-                                                        />
+                                                        <div className="portfolio-line-actions compact-portfolio-actions compact-sell-actions">
+                                                            <input
+                                                                type="number"
+                                                                min="0"
+                                                                max={lot.remainingQuantity}
+                                                                step="0.0001"
+                                                                value={sellQuantities[lot.id] ?? ""}
+                                                                placeholder="Кол-во"
+                                                                onChange={(event) =>
+                                                                    setSellQuantities((current) => ({
+                                                                        ...current,
+                                                                        [lot.id]: event.target.value
+                                                                    }))
+                                                                }
+                                                            />
 
-                                                        <button
-                                                            type="button"
-                                                            className="ghost-button danger-button"
-                                                            onClick={() => handleSell(lot)}
-                                                        >
-                                                            Продать
-                                                        </button>
+                                                            <button
+                                                                type="button"
+                                                                className="ghost-button danger-button"
+                                                                onClick={() => handleSell(lot)}
+                                                            >
+                                                                Продать
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             );
@@ -480,56 +471,94 @@ export function PortfolioPage() {
                 )}
             </article>
 
-            <div className="portfolio-bottom-grid">
-                <article className="panel">
-                    <div className="panel-header">
-                        <div>
-                            <h2>Закрытые сделки</h2>
-                        </div>
-                    </div>
+            {report && (
+                <AiReportPanel
+                    title="AI-анализ портфеля"
+                    report={report}
+                />
+            )}
 
+            <details className="panel compact-disclosure">
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>Статистика</h2>
+                        <span>
+                            Активов {simulator.assetsCount} · Лотов {simulator.lotsCount}
+                        </span>
+                    </div>
+                </summary>
+
+                <div className="compact-disclosure-body">
+                    <div className="summary-grid portfolio-summary-grid compact-summary-grid">
+                        <Summary label="Активов" value={String(simulator.assetsCount)} />
+                        <Summary label="Лотов" value={String(simulator.lotsCount)} />
+                        <Summary
+                            label="RUB Unrealized"
+                            value={formatMoney(simulator.totalRubProfitLoss, "RUB")}
+                            className={simulator.totalRubProfitLoss >= 0 ? "positive-value" : "negative-value"}
+                        />
+                        <Summary
+                            label="USD Unrealized"
+                            value={formatMoney(simulator.totalUsdProfitLoss, "USD")}
+                            className={simulator.totalUsdProfitLoss >= 0 ? "positive-value" : "negative-value"}
+                        />
+                        <Summary
+                            label="RUB Realized"
+                            value={formatMoney(realizedStats.rubRealized, "RUB")}
+                            className={realizedStats.rubRealized >= 0 ? "positive-value" : "negative-value"}
+                        />
+                        <Summary
+                            label="USD Realized"
+                            value={formatMoney(realizedStats.usdRealized, "USD")}
+                            className={realizedStats.usdRealized >= 0 ? "positive-value" : "negative-value"}
+                        />
+                        <Summary label="Лучший трейд" value={bestTradeSummary} />
+                        <Summary label="Худший трейд" value={worstTradeSummary} />
+                    </div>
+                </div>
+            </details>
+
+            <details className="panel compact-disclosure">
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>Закрытые сделки</h2>
+                        <span>{closedTrades.length}</span>
+                    </div>
+                </summary>
+
+                <div className="compact-disclosure-body">
                     {closedTrades.length === 0 ? (
                         <div className="empty-state">Закрытых сделок нет</div>
                     ) : (
-                        <div className="closed-trade-list">
+                        <div className="closed-trade-list compact-secondary-list">
                             {closedTrades.slice(0, 8).map((trade) => (
                                 <ClosedTradeCard key={trade.id} trade={trade} />
                             ))}
                         </div>
                     )}
-                </article>
-
-                <article className="panel">
-                    <div className="panel-header">
-                        <div>
-                            <h2>Лучший / худший трейд</h2>
-                        </div>
-                    </div>
-
-                    <div className="best-worst-grid">
-                        <TradeSpotlight title="Лучший" trade={realizedStats.bestTrade} />
-                        <TradeSpotlight title="Худший" trade={realizedStats.worstTrade} />
-                    </div>
-                </article>
-            </div>
-
-            <article className="panel">
-                <div className="panel-header">
-                    <div>
-                        <h2>Последние операции</h2>
-                    </div>
                 </div>
+            </details>
 
-                {recentTransactions.length === 0 ? (
-                    <div className="empty-state">Операций пока нет</div>
-                ) : (
-                    <div className="portfolio-transaction-list">
-                        {recentTransactions.map((transaction) => (
-                            <TransactionCard key={transaction.id} transaction={transaction} />
-                        ))}
+            <details className="panel compact-disclosure">
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>История операций</h2>
+                        <span>{recentTransactions.length}</span>
                     </div>
-                )}
-            </article>
+                </summary>
+
+                <div className="compact-disclosure-body">
+                    {recentTransactions.length === 0 ? (
+                        <div className="empty-state">Операций пока нет</div>
+                    ) : (
+                        <div className="portfolio-transaction-list compact-secondary-list">
+                            {recentTransactions.map((transaction) => (
+                                <TransactionCard key={transaction.id} transaction={transaction} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </details>
         </section>
     );
 }
@@ -541,7 +570,7 @@ type AccountCardProps = {
 
 function AccountCard({ label, value }: AccountCardProps) {
     return (
-        <div className="portfolio-account-card">
+        <div className="portfolio-account-card compact-small-card">
             <span>{label}</span>
             <strong>{value}</strong>
         </div>
@@ -556,7 +585,7 @@ type SummaryProps = {
 
 function Summary({ label, value, className }: SummaryProps) {
     return (
-        <div className="summary-card">
+        <div className="summary-card compact-small-card">
             <span>{label}</span>
             <strong className={className}>{value}</strong>
         </div>
@@ -586,7 +615,7 @@ type CalculatorMetricProps = {
 
 function CalculatorMetric({ label, value, className }: CalculatorMetricProps) {
     return (
-        <div className="portfolio-calculator-metric">
+        <div className="portfolio-calculator-metric compact-small-card">
             <span>{label}</span>
             <strong className={className}>{value}</strong>
         </div>
@@ -599,7 +628,7 @@ type ClosedTradeCardProps = {
 
 function ClosedTradeCard({ trade }: ClosedTradeCardProps) {
     return (
-        <div className="closed-trade-card">
+        <div className="closed-trade-card compact-secondary-card">
             <strong>{trade.ticker}</strong>
             <InlineMetric label="Кол-во" value={formatNumber(trade.quantity)} />
             <InlineMetric label="Вход" value={formatMoney(trade.buyPrice, trade.currency)} />
@@ -614,39 +643,13 @@ function ClosedTradeCard({ trade }: ClosedTradeCardProps) {
     );
 }
 
-type TradeSpotlightProps = {
-    title: string;
-    trade: ClosedTrade | null;
-};
-
-function TradeSpotlight({ title, trade }: TradeSpotlightProps) {
-    if (!trade) {
-        return (
-            <div className="trade-spotlight-card">
-                <span>{title}</span>
-                <strong>—</strong>
-            </div>
-        );
-    }
-
-    return (
-        <div className="trade-spotlight-card">
-            <span>{title}</span>
-            <strong>{trade.ticker}</strong>
-            <em className={trade.realizedProfitLoss >= 0 ? "positive-value" : "negative-value"}>
-                {formatMoney(trade.realizedProfitLoss, trade.currency)} · {formatPercent(trade.realizedProfitLossPercent)}
-            </em>
-        </div>
-    );
-}
-
 type TransactionCardProps = {
     transaction: PortfolioTransaction;
 };
 
 function TransactionCard({ transaction }: TransactionCardProps) {
     return (
-        <div className="portfolio-transaction-card">
+        <div className="portfolio-transaction-card compact-secondary-card">
             <span className={transaction.transactionType === "BUY" ? "transaction-buy portfolio-transaction-type" : "transaction-sell portfolio-transaction-type"}>
                 {transaction.transactionType === "BUY" ? "Покупка" : "Продажа"}
             </span>

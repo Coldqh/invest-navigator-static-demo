@@ -11,6 +11,7 @@ import "./styles/portfolio.css";
 import "./styles/ai-report.css";
 import "./styles/data.css";
 import "./styles/responsive.css";
+import "./styles/compact-layout.css";
 
 const rootElement = document.getElementById("root");
 

@@ -1,346 +1,245 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
 import { getAnalyticsSummary } from "../services/marketDataService";
-import type { AnalyticsSummary, Asset, AssetType, MarketDataSource } from "../types/domain";
+import type { AnalyticsSummary, Asset } from "../types/domain";
 
-type TypeFilter = "ALL" | AssetType;
-type ExchangeFilter = "ALL" | "MOEX" | "BINANCE";
-type SourceFilter = "ALL" | MarketDataSource;
-type SortMode =
-    | "TICKER_ASC"
-    | "PRICE_DESC"
-    | "GROWTH_DESC"
-    | "RISK_DESC"
-    | "VOLUME_DESC"
-    | "VOLATILITY_DESC";
+type AssetTypeFilter = "ALL" | string;
+type ExchangeFilter = "ALL" | string;
 
 export function AssetsPage() {
     const assets = useMemo(() => getAssets(), []);
-    const [query, setQuery] = useState("");
-    const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
-    const [exchangeFilter, setExchangeFilter] = useState<ExchangeFilter>("ALL");
-    const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL");
-    const [sortMode, setSortMode] = useState<SortMode>("TICKER_ASC");
+    const [analyticsMap, setAnalyticsMap] = useState<Record<string, AnalyticsSummary>>({});
+    const [isLoading, setIsLoading] = useState(true);
 
-    const [analyticsByTicker, setAnalyticsByTicker] = useState<Record<string, AnalyticsSummary>>({});
-    const [loadingTickers, setLoadingTickers] = useState<Record<string, boolean>>({});
-    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [search, setSearch] = useState("");
+    const [assetTypeFilter, setAssetTypeFilter] = useState<AssetTypeFilter>("ALL");
+    const [exchangeFilter, setExchangeFilter] = useState<ExchangeFilter>("ALL");
 
     useEffect(() => {
-        loadAnalytics();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        async function load() {
+            setIsLoading(true);
 
-    async function loadAnalytics() {
-        setIsRefreshing(true);
+            const loadedAnalytics = await Promise.all(
+                assets.map(async (asset) => {
+                    try {
+                        return await getAnalyticsSummary(asset.ticker);
+                    } catch {
+                        return null;
+                    }
+                })
+            );
 
-        const nextLoading = assets.reduce<Record<string, boolean>>((acc, asset) => {
-            acc[asset.ticker] = true;
-            return acc;
-        }, {});
+            const nextMap: Record<string, AnalyticsSummary> = {};
 
-        setLoadingTickers(nextLoading);
-
-        const loadedEntries = await Promise.all(
-            assets.map(async (asset) => {
-                try {
-                    const summary = await getAnalyticsSummary(asset.ticker);
-                    return [asset.ticker, summary] as const;
-                } catch {
-                    return null;
+            loadedAnalytics.forEach((item) => {
+                if (item) {
+                    nextMap[item.ticker] = item;
                 }
-            })
-        );
+            });
 
-        const nextAnalytics = loadedEntries.reduce<Record<string, AnalyticsSummary>>((acc, entry) => {
-            if (entry) {
-                const [ticker, summary] = entry;
-                acc[ticker] = summary;
-            }
+            setAnalyticsMap(nextMap);
+            setIsLoading(false);
+        }
 
-            return acc;
-        }, {});
-
-        setAnalyticsByTicker(nextAnalytics);
-        setLoadingTickers({});
-        setIsRefreshing(false);
-    }
+        load();
+    }, [assets]);
 
     const filteredAssets = useMemo(() => {
-        const normalizedQuery = query.trim().toLowerCase();
+        return assets.filter((asset) => {
+            const query = search.trim().toLowerCase();
+            const matchesSearch =
+                query.length === 0 ||
+                asset.ticker.toLowerCase().includes(query) ||
+                asset.name.toLowerCase().includes(query);
 
-        return assets
-            .filter((asset) => {
-                const matchesQuery =
-                    !normalizedQuery ||
-                    asset.ticker.toLowerCase().includes(normalizedQuery) ||
-                    asset.name.toLowerCase().includes(normalizedQuery) ||
-                    asset.exchange.toLowerCase().includes(normalizedQuery);
+            const matchesType =
+                assetTypeFilter === "ALL" ||
+                asset.assetType === assetTypeFilter;
 
-                const matchesType = typeFilter === "ALL" || asset.assetType === typeFilter;
-                const matchesExchange = exchangeFilter === "ALL" || asset.exchange === exchangeFilter;
+            const matchesExchange =
+                exchangeFilter === "ALL" ||
+                asset.exchange === exchangeFilter;
 
-                const summary = analyticsByTicker[asset.ticker];
-                const matchesSource =
-                    sourceFilter === "ALL" ||
-                    (summary && summary.source === sourceFilter);
+            return matchesSearch && matchesType && matchesExchange;
+        });
+    }, [assetTypeFilter, assets, exchangeFilter, search]);
 
-                return matchesQuery && matchesType && matchesExchange && matchesSource;
-            })
-            .sort((firstAsset, secondAsset) => {
-                const firstSummary = analyticsByTicker[firstAsset.ticker];
-                const secondSummary = analyticsByTicker[secondAsset.ticker];
-
-                if (sortMode === "PRICE_DESC") {
-                    return (secondSummary?.currentPrice ?? 0) - (firstSummary?.currentPrice ?? 0);
-                }
-
-                if (sortMode === "GROWTH_DESC") {
-                    return (secondSummary?.priceChangePercent ?? -Infinity) - (firstSummary?.priceChangePercent ?? -Infinity);
-                }
-
-                if (sortMode === "RISK_DESC") {
-                    return (secondSummary?.riskScore ?? 0) - (firstSummary?.riskScore ?? 0);
-                }
-
-                if (sortMode === "VOLUME_DESC") {
-                    return (secondSummary?.averageVolume ?? 0) - (firstSummary?.averageVolume ?? 0);
-                }
-
-                if (sortMode === "VOLATILITY_DESC") {
-                    return (secondSummary?.volatilityPercent ?? 0) - (firstSummary?.volatilityPercent ?? 0);
-                }
-
-                return firstAsset.ticker.localeCompare(secondAsset.ticker);
-            });
-    }, [analyticsByTicker, assets, exchangeFilter, query, sortMode, sourceFilter, typeFilter]);
-
-    const pageStats = useMemo(() => {
-        const summaries = Object.values(analyticsByTicker);
-        const realDataCount = summaries.filter((summary) => summary.source !== "DEMO").length;
-        const averageRisk = summaries.length === 0
-            ? 0
-            : summaries.reduce((sum, summary) => sum + summary.riskScore, 0) / summaries.length;
+    const summary = useMemo(() => {
+        const analytics = Object.values(analyticsMap);
 
         return {
             totalAssets: assets.length,
-            stockAssets: assets.filter((asset) => asset.assetType === "STOCK").length,
-            cryptoAssets: assets.filter((asset) => asset.assetType === "CRYPTO").length,
-            realDataCount,
-            averageRisk
+            stocks: assets.filter((asset) => asset.assetType === "STOCK").length,
+            crypto: assets.filter((asset) => asset.assetType === "CRYPTO").length,
+            averageRisk:
+                analytics.length === 0
+                    ? 0
+                    : Math.round(
+                        analytics.reduce((sum, item) => sum + item.riskScore, 0) / analytics.length
+                    )
         };
-    }, [analyticsByTicker, assets]);
+    }, [analyticsMap, assets]);
+
+    const assetTypeOptions = useMemo(() => {
+        return ["ALL", ...Array.from(new Set(assets.map((asset) => asset.assetType)))];
+    }, [assets]);
+
+    const exchangeOptions = useMemo(() => {
+        return ["ALL", ...Array.from(new Set(assets.map((asset) => asset.exchange)))];
+    }, [assets]);
+
+    if (isLoading) {
+        return <LoadingBlock text="Загружаем активы..." />;
+    }
 
     return (
         <section className="page assets-page">
             <div className="page-header">
                 <div>
                     <p className="eyebrow">Активы</p>
-                    <h1>Рыночный список</h1>
-                </div>
-
-                <div className="hero-actions">
-                    <button
-                        type="button"
-                        className="primary-button"
-                        disabled={isRefreshing}
-                        onClick={loadAnalytics}
-                    >
-                        {isRefreshing ? "Обновляем..." : "Обновить цены"}
-                    </button>
+                    <h1>Список активов</h1>
                 </div>
             </div>
 
-            <div className="assets-overview-grid">
-                <OverviewCard label="Всего активов" value={String(pageStats.totalAssets)} />
-                <OverviewCard label="Акции" value={String(pageStats.stockAssets)} />
-                <OverviewCard label="Крипта" value={String(pageStats.cryptoAssets)} />
-                <OverviewCard label="Реальные источники" value={String(pageStats.realDataCount)} />
-                <OverviewCard label="Средний риск" value={`${Math.round(pageStats.averageRisk)}/100`} />
+            <div className="assets-overview-grid assets-overview-grid-compact">
+                <CompactStatCard label="Всего" value={String(summary.totalAssets)} />
+                <CompactStatCard label="Акции" value={String(summary.stocks)} />
+                <CompactStatCard label="Крипта" value={String(summary.crypto)} />
+                <CompactStatCard label="Средний риск" value={`${summary.averageRisk}/100`} />
             </div>
 
-            <article className="panel assets-control-panel">
-                <div className="assets-controls">
-                    <label className="assets-control">
-                        <span>Поиск</span>
-                        <input
-                            value={query}
-                            placeholder="SBER, BTCUSDT, Газпром..."
-                            onChange={(event) => setQuery(event.target.value)}
-                        />
-                    </label>
+            <details className="panel compact-disclosure">
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>Фильтры</h2>
+                        <span>
+                            {filteredAssets.length} активов
+                            {search.trim() ? ` · поиск: ${search.trim()}` : ""}
+                        </span>
+                    </div>
+                </summary>
 
-                    <label className="assets-control">
-                        <span>Тип</span>
-                        <select
-                            value={typeFilter}
-                            onChange={(event) => setTypeFilter(event.target.value as TypeFilter)}
-                        >
-                            <option value="ALL">Все типы</option>
-                            <option value="STOCK">Акции</option>
-                            <option value="CRYPTO">Крипта</option>
-                            <option value="ETF">ETF</option>
-                            <option value="BOND">Облигации</option>
-                            <option value="INDEX">Индексы</option>
-                            <option value="CURRENCY">Валюты</option>
-                        </select>
-                    </label>
+                <div className="compact-disclosure-body">
+                    <div className="assets-controls compact-assets-controls">
+                        <label>
+                            <span>Поиск</span>
+                            <input
+                                value={search}
+                                placeholder="SBER, BTCUSDT, Аэрофлот..."
+                                onChange={(event) => setSearch(event.target.value)}
+                            />
+                        </label>
 
-                    <label className="assets-control">
-                        <span>Биржа</span>
-                        <select
-                            value={exchangeFilter}
-                            onChange={(event) => setExchangeFilter(event.target.value as ExchangeFilter)}
-                        >
-                            <option value="ALL">Все биржи</option>
-                            <option value="MOEX">MOEX</option>
-                            <option value="BINANCE">BINANCE</option>
-                        </select>
-                    </label>
+                        <label>
+                            <span>Тип</span>
+                            <select
+                                value={assetTypeFilter}
+                                onChange={(event) => setAssetTypeFilter(event.target.value)}
+                            >
+                                {assetTypeOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option === "ALL" ? "Все типы" : translateAssetType(option)}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
 
-                    <label className="assets-control">
-                        <span>Источник</span>
-                        <select
-                            value={sourceFilter}
-                            onChange={(event) => setSourceFilter(event.target.value as SourceFilter)}
-                        >
-                            <option value="ALL">Любой</option>
-                            <option value="MOEX">MOEX</option>
-                            <option value="BINANCE">BINANCE</option>
-                            <option value="DEMO">DEMO fallback</option>
-                        </select>
-                    </label>
-
-                    <label className="assets-control">
-                        <span>Сортировка</span>
-                        <select
-                            value={sortMode}
-                            onChange={(event) => setSortMode(event.target.value as SortMode)}
-                        >
-                            <option value="TICKER_ASC">По тикеру</option>
-                            <option value="PRICE_DESC">Самые дорогие</option>
-                            <option value="GROWTH_DESC">Лучший рост</option>
-                            <option value="RISK_DESC">Самый высокий риск</option>
-                            <option value="VOLUME_DESC">Самый высокий объём</option>
-                            <option value="VOLATILITY_DESC">Самая высокая волатильность</option>
-                        </select>
-                    </label>
+                        <label>
+                            <span>Биржа</span>
+                            <select
+                                value={exchangeFilter}
+                                onChange={(event) => setExchangeFilter(event.target.value)}
+                            >
+                                {exchangeOptions.map((option) => (
+                                    <option key={option} value={option}>
+                                        {option === "ALL" ? "Все биржи" : option}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
                 </div>
+            </details>
+
+            <article className="panel compact-list-panel">
+                <div className="panel-header compact-panel-header">
+                    <div>
+                        <h2>Активы</h2>
+                    </div>
+                </div>
+
+                {filteredAssets.length === 0 ? (
+                    <div className="empty-state">Ничего не найдено</div>
+                ) : (
+                    <div className="asset-compact-list">
+                        {filteredAssets.map((asset) => (
+                            <AssetCompactRow
+                                key={asset.id}
+                                asset={asset}
+                                analytics={analyticsMap[asset.ticker] ?? null}
+                            />
+                        ))}
+                    </div>
+                )}
             </article>
-
-            {filteredAssets.length === 0 ? (
-                <div className="empty-state">
-                    Ничего не найдено
-                </div>
-            ) : (
-                <div className="asset-grid asset-grid-rich">
-                    {filteredAssets.map((asset) => (
-                        <AssetCard
-                            key={asset.id}
-                            asset={asset}
-                            summary={analyticsByTicker[asset.ticker]}
-                            isLoading={Boolean(loadingTickers[asset.ticker])}
-                        />
-                    ))}
-                </div>
-            )}
         </section>
     );
 }
 
-type OverviewCardProps = {
+type CompactStatCardProps = {
     label: string;
     value: string;
 };
 
-function OverviewCard({ label, value }: OverviewCardProps) {
+function CompactStatCard({ label, value }: CompactStatCardProps) {
     return (
-        <div className="assets-overview-card">
+        <div className="assets-overview-card compact-stat-card">
             <span>{label}</span>
             <strong>{value}</strong>
         </div>
     );
 }
 
-type AssetCardProps = {
+type AssetCompactRowProps = {
     asset: Asset;
-    summary?: AnalyticsSummary;
-    isLoading: boolean;
+    analytics: AnalyticsSummary | null;
 };
 
-function AssetCard({ asset, summary, isLoading }: AssetCardProps) {
-    const source = summary?.source ?? "DEMO";
-    const isPositive = (summary?.priceChangePercent ?? 0) >= 0;
+function AssetCompactRow({ asset, analytics }: AssetCompactRowProps) {
+    const change = analytics?.priceChangePercent ?? 0;
+    const isPositive = change >= 0;
 
     return (
-        <article className="asset-card asset-card-rich">
-            <div className="asset-card-top">
-                <div>
-                    <div className="asset-card-title-row">
-                        <strong>{asset.ticker}</strong>
-                        <span className={`source-pill source-${source.toLowerCase()}`}>
-                            {isLoading ? "LOADING" : source}
-                        </span>
-                    </div>
+        <Link to={`/assets/${asset.ticker}`} className="asset-compact-row">
+            <div className="asset-compact-main">
+                <strong>{asset.ticker}</strong>
+                <span>{asset.name}</span>
+            </div>
 
-                    <span>{asset.name}</span>
+            <div className="asset-compact-side">
+                <em className={`asset-compact-source asset-compact-source-${asset.exchange.toLowerCase()}`}>
+                    {asset.exchange}
+                </em>
+
+                <div className="asset-compact-price">
+                    <strong>
+                        {analytics
+                            ? `${formatNumber(analytics.currentPrice)} ${asset.currency}`
+                            : `— ${asset.currency}`}
+                    </strong>
+
+                    <span className={isPositive ? "positive-value" : "negative-value"}>
+                        {analytics ? formatPercentWithSign(change) : "—"}
+                    </span>
                 </div>
             </div>
-
-            <div className="asset-price-block">
-                <span>Текущая цена</span>
-                <strong>
-                    {summary
-                        ? formatMoney(summary.currentPrice, asset.currency)
-                        : isLoading
-                            ? "Загрузка..."
-                            : "—"}
-                </strong>
-
-                {summary && (
-                    <small className={isPositive ? "positive-value" : "negative-value"}>
-                        {isPositive ? "+" : ""}
-                        {formatPercent(summary.priceChangePercent)}
-                    </small>
-                )}
-            </div>
-
-            <div className="asset-card-metrics">
-                <Metric label="Тип" value={translateAssetType(asset.assetType)} />
-                <Metric label="Риск" value={summary ? `${summary.riskScore}/100` : "—"} />
-                <Metric label="Волатильность" value={summary ? formatPercent(summary.volatilityPercent) : "—"} />
-                <Metric label="Объём" value={summary ? formatCompactNumber(summary.averageVolume) : "—"} />
-            </div>
-
-            <div className="asset-card-actions">
-                <Link to={`/assets/${asset.ticker}`} className="primary-button">
-                    Открыть
-                </Link>
-
-                <Link to="/portfolio" className="ghost-button">
-                    Купить
-                </Link>
-            </div>
-        </article>
+        </Link>
     );
 }
 
-type MetricProps = {
-    label: string;
-    value: string;
-};
-
-function Metric({ label, value }: MetricProps) {
-    return (
-        <div className="asset-mini-metric">
-            <span>{label}</span>
-            <strong>{value}</strong>
-        </div>
-    );
-}
-
-function translateAssetType(assetType: AssetType): string {
+function translateAssetType(assetType: string): string {
     if (assetType === "STOCK") return "Акция";
     if (assetType === "CRYPTO") return "Крипта";
     if (assetType === "ETF") return "ETF";
@@ -351,21 +250,14 @@ function translateAssetType(assetType: AssetType): string {
     return assetType;
 }
 
-function formatMoney(value: number, currency: string): string {
-    return `${new Intl.NumberFormat("ru-RU", {
-        maximumFractionDigits: currency === "USD" ? 4 : 2
-    }).format(value)} ${currency}`;
+function formatNumber(value: number): string {
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 8
+    }).format(value);
 }
 
-function formatPercent(value: number): string {
-    return `${new Intl.NumberFormat("ru-RU", {
+function formatPercentWithSign(value: number): string {
+    return `${value >= 0 ? "+" : ""}${new Intl.NumberFormat("ru-RU", {
         maximumFractionDigits: 2
     }).format(value)}%`;
-}
-
-function formatCompactNumber(value: number): string {
-    return new Intl.NumberFormat("ru-RU", {
-        notation: "compact",
-        maximumFractionDigits: 2
-    }).format(value);
 }
