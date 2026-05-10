@@ -1,0 +1,194 @@
+.asset-line-chart-dot {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: scale(2);
+}
+
+.asset-chart-fixed-tooltip {
+    background: #020617 !important;
+}
+
+.compare-vs-center {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.compare-vs-center > span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    color: #86efac;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.22);
+    font-size: 18px;
+    font-weight: 950;
+}
+
+.compare-vs-select {
+    min-height: 64px;
+    font-size: 20px;
+}
+
+.compare-vs-middle {
+    align-content: start;
+    min-height: 0 !important;
+}
+
+.compare-vs-select-bottom {
+    margin-top: 0;
+}
+
+.compact-portfolio-extra-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.compact-portfolio-extra-buttons .ghost-button {
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 14px;
+    text-align: center;
+}
+
+.compact-holdings-panel {
+    gap: 8px;
+}
+
+.compact-holdings-header {
+    margin-bottom: 0 !important;
+}
+
+.compact-holdings-panel .panel-header {
+    margin-bottom: 0 !important;
+}
+
+.compact-holdings-list {
+    margin-top: 0 !important;
+}
+
+.compact-holding-line-main {
+    grid-template-columns: minmax(190px, 1.7fr) repeat(4, minmax(110px, 1fr));
+}
+
+.compact-holding-line-main .compact-holding-main strong {
+    font-size: 28px;
+}
+
+.compact-lot-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+}
+
+.compact-lot-actions input,
+.compact-lot-actions .ghost-button {
+    width: 100%;
+}
+
+.danger-sell-button {
+    color: #fecaca !important;
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-color: rgba(239, 68, 68, 0.42) !important;
+}
+
+.danger-sell-button:hover {
+    background: rgba(239, 68, 68, 0.2) !important;
+}
+
+@media (max-width: 900px) {
+    .compare-vs-page {
+        align-content: start;
+        min-height: 0 !important;
+        gap: 8px;
+    }
+
+    .compare-vs-select {
+        min-height: 52px;
+        font-size: 15px;
+        font-weight: 950;
+    }
+
+    .compare-vs-middle {
+        min-height: 0 !important;
+        padding: 10px;
+    }
+
+    .compare-vs-title-row {
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    }
+
+    .compare-vs-title-row strong {
+        font-size: 22px;
+    }
+
+    .compare-vs-center {
+        gap: 5px;
+    }
+
+    .compare-vs-center > span {
+        min-width: 24px;
+        height: 24px;
+        font-size: 13px;
+    }
+
+    .compare-vs-badge {
+        min-width: 44px;
+        min-height: 44px;
+        font-size: 17px;
+    }
+
+    .compare-vs-row {
+        min-height: 36px;
+    }
+
+    .compact-portfolio-extra-buttons {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .compact-portfolio-extra-buttons .ghost-button {
+        min-height: 30px;
+        padding: 0 7px;
+        border-radius: 10px;
+        font-size: 9px;
+    }
+
+    .compact-holdings-panel {
+        gap: 6px;
+    }
+
+    .compact-holdings-panel .panel-header {
+        margin-bottom: 0 !important;
+    }
+
+    .compact-holdings-panel h2 {
+        font-size: 28px;
+    }
+
+    .compact-holding-line-main {
+        grid-template-columns: minmax(0, 1.65fr) repeat(4, minmax(0, 0.78fr));
+    }
+
+    .compact-holding-line-main .compact-holding-main strong {
+        font-size: 17px;
+        line-height: 1.05;
+    }
+
+    .compact-lot-actions {
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+    }
+
+    .compact-lot-actions input,
+    .compact-lot-actions .ghost-button {
+        width: 100%;
+        min-height: 28px;
+    }
+}

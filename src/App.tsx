@@ -23,7 +23,6 @@ export function App() {
                     <NavLink to="/assets">Активы</NavLink>
                     <NavLink to="/compare">Сравнение</NavLink>
                     <NavLink to="/portfolio">Портфель</NavLink>
-                    <NavLink to="/data">Данные</NavLink>
                 </nav>
             </aside>
 
