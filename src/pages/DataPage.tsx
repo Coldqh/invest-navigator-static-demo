@@ -1,15 +1,12 @@
 import { ChangeEvent, useMemo, useState } from "react";
 import {
-    clearStaticAppStorage,
     exportStaticAppData,
-    getStaticStorageSizeBytes,
     importStaticAppData
 } from "../services/storageService";
 import type { StaticAppBackup } from "../types/domain";
 
 export function DataPage() {
     const [backup, setBackup] = useState<StaticAppBackup>(() => exportStaticAppData());
-    const [storageSizeBytes, setStorageSizeBytes] = useState(() => getStaticStorageSizeBytes());
     const [importText, setImportText] = useState("");
     const [status, setStatus] = useState("");
     const [error, setError] = useState("");
@@ -18,22 +15,14 @@ export function DataPage() {
         return JSON.stringify(backup, null, 2);
     }, [backup]);
 
-    const storageKeys = useMemo(() => {
-        return Object.keys(backup.values).sort();
-    }, [backup.values]);
-
-    const backupSizeBytes = useMemo(() => {
-        return new Blob([formattedBackup]).size;
-    }, [formattedBackup]);
-
-    function refresh() {
+    function refreshBackup() {
         setBackup(exportStaticAppData());
-        setStorageSizeBytes(getStaticStorageSizeBytes());
     }
 
     function handleExportFile() {
         try {
             setError("");
+
             const currentBackup = exportStaticAppData();
             const content = JSON.stringify(currentBackup, null, 2);
             const blob = new Blob([content], {
@@ -50,8 +39,8 @@ export function DataPage() {
 
             URL.revokeObjectURL(url);
 
+            setBackup(currentBackup);
             setStatus("Файл экспорта создан");
-            refresh();
         } catch {
             setError("Не удалось экспортировать данные");
         }
@@ -60,6 +49,8 @@ export function DataPage() {
     async function handleCopyBackup() {
         try {
             setError("");
+            refreshBackup();
+
             await navigator.clipboard.writeText(formattedBackup);
             setStatus("JSON скопирован в буфер");
         } catch {
@@ -70,10 +61,11 @@ export function DataPage() {
     function handleImportFromText() {
         try {
             setError("");
+
             const parsed = JSON.parse(importText) as StaticAppBackup;
 
             importStaticAppData(parsed);
-            refresh();
+            refreshBackup();
 
             setImportText("");
             setStatus("Данные импортированы");
@@ -93,6 +85,7 @@ export function DataPage() {
 
         reader.onload = () => {
             const text = String(reader.result ?? "");
+
             setImportText(text);
             setStatus(`Файл загружен: ${file.name}`);
             setError("");
@@ -104,20 +97,6 @@ export function DataPage() {
 
         reader.readAsText(file);
         event.target.value = "";
-    }
-
-    function handleClearStorage() {
-        const confirmed = window.confirm("Удалить все данные приложения из браузера?");
-
-        if (!confirmed) {
-            return;
-        }
-
-        clearStaticAppStorage();
-        refresh();
-        setImportText("");
-        setStatus("Данные очищены");
-        setError("");
     }
 
     return (
@@ -132,14 +111,7 @@ export function DataPage() {
             {status && <div className="data-status-block">{status}</div>}
             {error && <div className="error-block">{error}</div>}
 
-            <div className="data-summary-grid">
-                <DataStat label="Версия backup" value={String(backup.version)} />
-                <DataStat label="Ключей" value={String(storageKeys.length)} />
-                <DataStat label="LocalStorage" value={formatBytes(storageSizeBytes)} />
-                <DataStat label="Размер backup" value={formatBytes(backupSizeBytes)} />
-            </div>
-
-            <div className="data-grid">
+            <div className="data-grid data-grid-simple">
                 <article className="panel data-actions-panel">
                     <div className="panel-header">
                         <div>
@@ -155,24 +127,6 @@ export function DataPage() {
                         <button type="button" className="ghost-button" onClick={handleCopyBackup}>
                             Скопировать JSON
                         </button>
-
-                        <button type="button" className="ghost-button" onClick={refresh}>
-                            Обновить сводку
-                        </button>
-                    </div>
-
-                    <div className="data-preview-box">
-                        <span>Активные ключи</span>
-
-                        {storageKeys.length === 0 ? (
-                            <strong>Данных пока нет</strong>
-                        ) : (
-                            <div className="data-key-list">
-                                {storageKeys.map((key) => (
-                                    <code key={key}>{key}</code>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </article>
 
@@ -219,51 +173,11 @@ export function DataPage() {
                         >
                             Очистить поле
                         </button>
-
-                        <button type="button" className="ghost-button danger-button" onClick={handleClearStorage}>
-                            Стереть данные
-                        </button>
                     </div>
                 </article>
             </div>
-
-            <article className="panel data-raw-panel">
-                <div className="panel-header">
-                    <div>
-                        <h2>Текущий backup</h2>
-                    </div>
-                </div>
-
-                <pre>{formattedBackup}</pre>
-            </article>
         </section>
     );
-}
-
-type DataStatProps = {
-    label: string;
-    value: string;
-};
-
-function DataStat({ label, value }: DataStatProps) {
-    return (
-        <div className="data-stat-card">
-            <span>{label}</span>
-            <strong>{value}</strong>
-        </div>
-    );
-}
-
-function formatBytes(value: number): string {
-    if (value < 1024) {
-        return `${value} B`;
-    }
-
-    if (value < 1024 * 1024) {
-        return `${(value / 1024).toFixed(2)} KB`;
-    }
-
-    return `${(value / 1024 / 1024).toFixed(2)} MB`;
 }
 
 function formatFileDate(date: Date): string {
