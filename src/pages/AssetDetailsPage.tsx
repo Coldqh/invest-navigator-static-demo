@@ -175,6 +175,14 @@ export function AssetDetailsPage() {
         };
     }, [visibleCandles]);
 
+    const isChartPositive = useMemo(() => {
+        if (visibleCandles.length < 2) {
+            return true;
+        }
+
+        return visibleCandles[visibleCandles.length - 1].close >= visibleCandles[0].close;
+    }, [visibleCandles]);
+
     const lineChartDots = useMemo<LineChartDot[]>(() => {
         if (visibleCandles.length === 0) {
             return [];
@@ -219,6 +227,8 @@ export function AssetDetailsPage() {
     const isPositive = changePercent >= 0;
     const source = price?.source ?? analytics?.source ?? "DEMO";
     const riskScore = analytics?.riskScore ?? 0;
+    const chartColorClass = isChartPositive ? "chart-up" : "chart-down";
+    const chartGradientId = isChartPositive ? "lineChartGradientUp" : "lineChartGradientDown";
 
     return (
         <section className="page asset-details-page">
@@ -255,7 +265,7 @@ export function AssetDetailsPage() {
                     <div className="hero-actions">
                         <button
                             type="button"
-                            className="ghost-button"
+                            className="ghost-button color-button-blue"
                             disabled={isRefreshing}
                             onClick={handleRefresh}
                         >
@@ -264,14 +274,14 @@ export function AssetDetailsPage() {
 
                         <button
                             type="button"
-                            className="primary-button"
+                            className="primary-button color-button-purple"
                             disabled={isGeneratingReport}
                             onClick={handleGenerateReport}
                         >
                             {isGeneratingReport ? "Генерируем..." : "AI-отчёт"}
                         </button>
 
-                        <Link to="/portfolio" className="ghost-button">
+                        <Link to="/portfolio" className="ghost-button color-button-green">
                             Купить
                         </Link>
                     </div>
@@ -371,18 +381,24 @@ export function AssetDetailsPage() {
                 ) : (
                     <div className={isChartLoading ? "asset-chart-body chart-loading" : "asset-chart-body"}>
                         {chartViewMode === "LINE" ? (
-                            <div className="asset-line-chart">
+                            <div className={`asset-line-chart ${chartColorClass}`}>
                                 <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
                                     <defs>
-                                        <linearGradient id="lineChartGradient" x1="0" x2="0" y1="0" y2="1">
-                                            <stop offset="0%" stopColor="rgba(56, 189, 248, 0.36)" />
-                                            <stop offset="100%" stopColor="rgba(56, 189, 248, 0)" />
+                                        <linearGradient id="lineChartGradientUp" x1="0" x2="0" y1="0" y2="1">
+                                            <stop offset="0%" stopColor="rgba(34, 197, 94, 0.42)" />
+                                            <stop offset="100%" stopColor="rgba(34, 197, 94, 0)" />
+                                        </linearGradient>
+
+                                        <linearGradient id="lineChartGradientDown" x1="0" x2="0" y1="0" y2="1">
+                                            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.42)" />
+                                            <stop offset="100%" stopColor="rgba(239, 68, 68, 0)" />
                                         </linearGradient>
                                     </defs>
 
                                     <polygon
                                         points={`0,280 ${lineChartPoints} 1000,280`}
                                         className="asset-line-chart-area"
+                                        fill={`url(#${chartGradientId})`}
                                     />
 
                                     <polyline
@@ -396,7 +412,7 @@ export function AssetDetailsPage() {
                                             className="asset-line-chart-dot"
                                             cx={dot.x}
                                             cy={dot.y}
-                                            r="3.8"
+                                            r="7.6"
                                             onClick={() => setActiveChartCandle(dot.candle)}
                                         />
                                     ))}

@@ -715,7 +715,7 @@ export function PortfolioPage() {
                             const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
 
                             return (
-                                <div className="compact-closed-trade-line" key={trade.id}>
+                                <div className={`compact-closed-trade-line ${pnl >= 0 ? "closed-trade-profit" : "closed-trade-loss"}`} key={trade.id}>
                                     <strong>
                                         {formatQuantity(trade.quantity)} {trade.ticker}
                                     </strong>
@@ -747,8 +747,27 @@ export function PortfolioPage() {
                 ) : (
                     <div className="compact-closed-trades-list">
                         {portfolioState.transactions.map((transaction) => (
-                            <div className="compact-closed-trade-line" key={transaction.id}>
-                                <strong>{translateTransactionType(transaction.type)}</strong>
+                            <div
+                                className={`compact-closed-trade-line ${
+                                    transaction.type === "BUY"
+                                        ? "transaction-buy-line"
+                                        : transaction.type === "SELL"
+                                            ? "transaction-sell-line"
+                                            : ""
+                                }`}
+                                key={transaction.id}
+                            >
+                                <strong
+                                    className={
+                                        transaction.type === "BUY"
+                                            ? "transaction-buy-label"
+                                            : transaction.type === "SELL"
+                                                ? "transaction-sell-label"
+                                                : ""
+                                    }
+                                >
+                                    {translateTransactionType(transaction.type)}
+                                </strong>
                                 <span>{transaction.ticker ?? transaction.currency}</span>
                                 <span>{formatMoney(transaction.amount, transaction.currency)}</span>
                                 <em>{formatDateTime(transaction.createdAt)}</em>

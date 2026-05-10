@@ -1,0 +1,125 @@
+.primary-button,
+.ghost-button,
+button.primary-button,
+button.ghost-button,
+a.primary-button,
+a.ghost-button {
+    color: #f8fafc !important;
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.14), transparent 8rem),
+            linear-gradient(135deg, rgba(14, 165, 233, 0.88), rgba(37, 99, 235, 0.88)) !important;
+    border-color: rgba(56, 189, 248, 0.46) !important;
+    box-shadow: 0 10px 26px rgba(14, 165, 233, 0.18);
+}
+
+.ghost-button {
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.11), transparent 8rem),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(30, 41, 59, 0.9)) !important;
+}
+
+.color-button-blue {
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.14), transparent 8rem),
+            linear-gradient(135deg, rgba(14, 165, 233, 0.9), rgba(37, 99, 235, 0.82)) !important;
+}
+
+.color-button-purple {
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 8rem),
+            linear-gradient(135deg, rgba(168, 85, 247, 0.9), rgba(14, 165, 233, 0.9)) !important;
+}
+
+.color-button-green {
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.14), transparent 8rem),
+            linear-gradient(135deg, rgba(34, 197, 94, 0.9), rgba(20, 184, 166, 0.86)) !important;
+    border-color: rgba(34, 197, 94, 0.44) !important;
+}
+
+.danger-sell-button,
+.danger-button {
+    color: #fee2e2 !important;
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 8rem),
+            linear-gradient(135deg, rgba(239, 68, 68, 0.9), rgba(153, 27, 27, 0.86)) !important;
+    border-color: rgba(248, 113, 113, 0.52) !important;
+    box-shadow: 0 10px 26px rgba(239, 68, 68, 0.18);
+}
+
+.asset-line-chart.chart-up .asset-line-chart-line {
+    stroke: #22c55e !important;
+    filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.6));
+}
+
+.asset-line-chart.chart-down .asset-line-chart-line {
+    stroke: #ef4444 !important;
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.6));
+}
+
+.asset-line-chart.chart-up .asset-line-chart-dot {
+    fill: #22c55e !important;
+    stroke: #020617 !important;
+    filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.9));
+    transform: none !important;
+}
+
+.asset-line-chart.chart-down .asset-line-chart-dot {
+    fill: #ef4444 !important;
+    stroke: #020617 !important;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.9));
+    transform: none !important;
+}
+
+.transaction-buy-line {
+    border-color: rgba(34, 197, 94, 0.26) !important;
+    background:
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+.transaction-sell-line {
+    border-color: rgba(239, 68, 68, 0.26) !important;
+    background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.1), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+.transaction-buy-label,
+.transaction-profit {
+    color: #86efac !important;
+}
+
+.transaction-sell-label,
+.transaction-loss {
+    color: #fca5a5 !important;
+}
+
+.closed-trade-profit {
+    border-color: rgba(34, 197, 94, 0.24) !important;
+    background:
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.09), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+.closed-trade-loss {
+    border-color: rgba(239, 68, 68, 0.24) !important;
+    background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.09), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+@media (max-width: 900px) {
+    .asset-line-chart-dot {
+        transform: none !important;
+    }
+
+    .primary-button,
+    .ghost-button,
+    button.primary-button,
+    button.ghost-button,
+    a.primary-button,
+    a.ghost-button {
+        box-shadow: 0 8px 18px rgba(14, 165, 233, 0.14);
+    }
+}
