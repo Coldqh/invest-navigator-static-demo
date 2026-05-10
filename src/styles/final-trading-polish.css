@@ -1,0 +1,213 @@
+.asset-line-chart.chart-up .asset-line-chart-area {
+    fill: url("#lineChartGradientUp") !important;
+}
+
+.asset-line-chart.chart-down .asset-line-chart-area {
+    fill: url("#lineChartGradientDown") !important;
+}
+
+.asset-line-chart.chart-up .asset-line-chart-line {
+    stroke: #22c55e !important;
+    filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.72));
+}
+
+.asset-line-chart.chart-down .asset-line-chart-line {
+    stroke: #ef4444 !important;
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.72));
+}
+
+.asset-line-chart.chart-up .asset-line-chart-dot {
+    fill: #22c55e !important;
+    stroke: #020617 !important;
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.95));
+}
+
+.asset-line-chart.chart-down .asset-line-chart-dot {
+    fill: #ef4444 !important;
+    stroke: #020617 !important;
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95));
+}
+
+.asset-inline-buy-panel {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 18px;
+}
+
+.asset-inline-buy-grid {
+    display: grid;
+    grid-template-columns: 0.8fr 1fr 1fr auto;
+    align-items: end;
+    gap: 10px;
+}
+
+.asset-inline-buy-grid label,
+.asset-inline-buy-grid > div {
+    display: grid;
+    gap: 5px;
+}
+
+.asset-inline-buy-grid span {
+    color: #94a3b8;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.asset-inline-buy-grid strong {
+    color: #f8fafc;
+    font-size: 16px;
+    font-weight: 950;
+}
+
+.asset-inline-buy-grid input {
+    min-height: 42px;
+    padding: 0 12px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 14px;
+    color: #f8fafc;
+    background: rgba(2, 6, 23, 0.58);
+    font-size: 15px;
+    font-weight: 900;
+}
+
+.asset-inline-buy-grid .primary-button {
+    min-height: 42px;
+    padding: 0 20px;
+}
+
+.asset-inline-buy-message {
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.portfolio-page .primary-button,
+.portfolio-page .ghost-button {
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 8rem),
+            linear-gradient(135deg, rgba(30, 41, 59, 0.82), rgba(15, 23, 42, 0.82)) !important;
+    border-color: rgba(148, 163, 184, 0.22) !important;
+    box-shadow: none !important;
+}
+
+.portfolio-page .compact-portfolio-toggle-buttons button:first-child {
+    color: #dcfce7 !important;
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.09), transparent 8rem),
+            linear-gradient(135deg, rgba(34, 197, 94, 0.5), rgba(20, 184, 166, 0.42)) !important;
+    border-color: rgba(34, 197, 94, 0.34) !important;
+}
+
+.portfolio-page .compact-portfolio-toggle-buttons button:nth-child(2),
+.portfolio-page .compact-portfolio-extra-buttons .ghost-button {
+    color: #dbeafe !important;
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 8rem),
+            linear-gradient(135deg, rgba(59, 130, 246, 0.26), rgba(15, 23, 42, 0.78)) !important;
+    border-color: rgba(96, 165, 250, 0.24) !important;
+}
+
+.portfolio-page .compact-holding-actions .primary-button {
+    color: #dbeafe !important;
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 8rem),
+            linear-gradient(135deg, rgba(14, 165, 233, 0.48), rgba(30, 41, 59, 0.78)) !important;
+    border-color: rgba(56, 189, 248, 0.3) !important;
+}
+
+.portfolio-page .compact-holding-card:has(.compact-lot-list) > .compact-holding-actions .primary-button {
+    color: #e5e7eb !important;
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 8rem),
+            linear-gradient(135deg, rgba(100, 116, 139, 0.5), rgba(30, 41, 59, 0.72)) !important;
+    border-color: rgba(148, 163, 184, 0.32) !important;
+}
+
+.portfolio-page .danger-sell-button,
+.portfolio-page button.danger-sell-button,
+.portfolio-page .compact-lot-actions .danger-sell-button {
+    color: #fee2e2 !important;
+    background:
+            radial-gradient(circle at top left, rgba(255, 255, 255, 0.1), transparent 8rem),
+            linear-gradient(135deg, rgba(239, 68, 68, 0.68), rgba(127, 29, 29, 0.72)) !important;
+    border-color: rgba(248, 113, 113, 0.52) !important;
+}
+
+.transaction-buy-line {
+    border-color: rgba(34, 197, 94, 0.26) !important;
+    background:
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.1), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+.transaction-sell-line {
+    border-color: rgba(239, 68, 68, 0.26) !important;
+    background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.1), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+.transaction-buy-label,
+.transaction-profit {
+    color: #86efac !important;
+}
+
+.transaction-sell-label,
+.transaction-loss {
+    color: #fca5a5 !important;
+}
+
+.closed-trade-profit {
+    border-color: rgba(34, 197, 94, 0.24) !important;
+    background:
+            radial-gradient(circle at top left, rgba(34, 197, 94, 0.09), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+.closed-trade-loss {
+    border-color: rgba(239, 68, 68, 0.24) !important;
+    background:
+            radial-gradient(circle at top left, rgba(239, 68, 68, 0.09), transparent 12rem),
+            rgba(2, 6, 23, 0.28) !important;
+}
+
+@media (max-width: 900px) {
+    .asset-inline-buy-panel {
+        padding: 10px;
+        border-radius: 14px;
+    }
+
+    .asset-inline-buy-grid {
+        grid-template-columns: 0.75fr 1fr 1fr;
+        gap: 6px;
+    }
+
+    .asset-inline-buy-grid .primary-button {
+        grid-column: 1 / -1;
+        min-height: 34px;
+    }
+
+    .asset-inline-buy-grid span {
+        font-size: 8px;
+    }
+
+    .asset-inline-buy-grid strong {
+        font-size: 11px;
+    }
+
+    .asset-inline-buy-grid input {
+        min-height: 34px;
+        padding: 0 8px;
+        border-radius: 10px;
+        font-size: 12px;
+    }
+
+    .asset-inline-buy-message {
+        font-size: 11px;
+    }
+}

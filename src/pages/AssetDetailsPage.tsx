@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { LoadingBlock } from "../components/LoadingBlock";
 import { AiReportPanel } from "../components/AiReportPanel";
 import { getAsset } from "../services/assetsService";
@@ -18,12 +18,45 @@ import type {
 } from "../types/domain";
 
 type ChartViewMode = "LINE" | "CANDLES";
+type Currency = "RUB" | "USD";
 
 type LineChartDot = {
     candle: Candle;
     x: number;
     y: number;
 };
+
+type StoredPortfolioState = {
+    balances: {
+        RUB: number;
+        USD: number;
+    };
+    lots: StoredPortfolioLot[];
+    closedTrades: unknown[];
+    transactions: StoredPortfolioTransaction[];
+};
+
+type StoredPortfolioLot = {
+    id: string;
+    ticker: string;
+    quantity: number;
+    purchasePrice: number;
+    currency: Currency;
+    purchasedAt: string;
+};
+
+type StoredPortfolioTransaction = {
+    id: string;
+    type: "BUY" | "SELL" | "BALANCE" | "DEMO_ACCOUNT";
+    ticker?: string;
+    quantity?: number;
+    price?: number;
+    amount: number;
+    currency: Currency;
+    createdAt: string;
+};
+
+const PORTFOLIO_STORAGE_KEY = "invest-navigator-portfolio-state";
 
 export function AssetDetailsPage() {
     const { ticker = "" } = useParams();
@@ -37,6 +70,11 @@ export function AssetDetailsPage() {
 
     const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("MONTH");
     const [chartViewMode, setChartViewMode] = useState<ChartViewMode>("LINE");
+
+    const [isBuyPanelOpen, setIsBuyPanelOpen] = useState(false);
+    const [buyQuantity, setBuyQuantity] = useState("1");
+    const [buyMessage, setBuyMessage] = useState("");
+    const [portfolioBalances, setPortfolioBalances] = useState(() => loadStoredPortfolioState().balances);
 
     const [isInitialLoading, setIsInitialLoading] = useState(true);
     const [isChartLoading, setIsChartLoading] = useState(false);
@@ -143,6 +181,70 @@ export function AssetDetailsPage() {
         }
     }
 
+    function handleToggleBuyPanel() {
+        setBuyMessage("");
+        setPortfolioBalances(loadStoredPortfolioState().balances);
+        setIsBuyPanelOpen((current) => !current);
+    }
+
+    function handleBuyFromAsset() {
+        if (!asset || !price) {
+            return;
+        }
+
+        const quantity = parsePositiveNumber(buyQuantity);
+        const currency = normalizeCurrency(asset.currency);
+        const totalCost = quantity * price.price;
+
+        if (quantity <= 0) {
+            setBuyMessage("Введи количество больше 0.");
+            return;
+        }
+
+        const portfolio = loadStoredPortfolioState();
+
+        if (portfolio.balances[currency] < totalCost) {
+            setBuyMessage(`Недостаточно средств на ${currency} счёте.`);
+            setPortfolioBalances(portfolio.balances);
+            return;
+        }
+
+        const nextLot: StoredPortfolioLot = {
+            id: createId(),
+            ticker: asset.ticker,
+            quantity,
+            purchasePrice: price.price,
+            currency,
+            purchasedAt: new Date().toISOString()
+        };
+
+        const nextTransaction: StoredPortfolioTransaction = {
+            id: createId(),
+            type: "BUY",
+            ticker: asset.ticker,
+            quantity,
+            price: price.price,
+            amount: totalCost,
+            currency,
+            createdAt: new Date().toISOString()
+        };
+
+        const nextState: StoredPortfolioState = {
+            ...portfolio,
+            balances: {
+                ...portfolio.balances,
+                [currency]: portfolio.balances[currency] - totalCost
+            },
+            lots: [nextLot, ...portfolio.lots],
+            transactions: [nextTransaction, ...portfolio.transactions]
+        };
+
+        saveStoredPortfolioState(nextState);
+        setPortfolioBalances(nextState.balances);
+        setBuyQuantity("1");
+        setBuyMessage("Покупка добавлена в портфель.");
+    }
+
     const sortedCandles = useMemo(() => {
         return [...candles].sort((first, second) => {
             return new Date(first.timestamp).getTime() - new Date(second.timestamp).getTime();
@@ -230,6 +332,12 @@ export function AssetDetailsPage() {
     const chartColorClass = isChartPositive ? "chart-up" : "chart-down";
     const chartGradientId = isChartPositive ? "lineChartGradientUp" : "lineChartGradientDown";
 
+    const buyCurrency = normalizeCurrency(asset.currency);
+    const buyQuantityNumber = parsePositiveNumber(buyQuantity);
+    const buyPrice = price?.price ?? 0;
+    const buyTotalCost = buyQuantityNumber * buyPrice;
+    const balanceAfterBuy = portfolioBalances[buyCurrency] - buyTotalCost;
+
     return (
         <section className="page asset-details-page">
             <article className="asset-details-hero">
@@ -281,12 +389,63 @@ export function AssetDetailsPage() {
                             {isGeneratingReport ? "Генерируем..." : "AI-отчёт"}
                         </button>
 
-                        <Link to="/portfolio" className="ghost-button color-button-green">
+                        <button
+                            type="button"
+                            className="ghost-button color-button-green"
+                            onClick={handleToggleBuyPanel}
+                        >
                             Купить
-                        </Link>
+                        </button>
                     </div>
                 </div>
             </article>
+
+            {isBuyPanelOpen && (
+                <article className="panel asset-inline-buy-panel">
+                    <div className="asset-inline-buy-grid">
+                        <label>
+                            <span>Количество</span>
+                            <input
+                                type="number"
+                                min="0"
+                                step="0.0001"
+                                value={buyQuantity}
+                                onChange={(event) => {
+                                    setBuyQuantity(event.target.value);
+                                    setBuyMessage("");
+                                }}
+                            />
+                        </label>
+
+                        <div>
+                            <span>Общая цена</span>
+                            <strong>{formatMoney(buyTotalCost, buyCurrency)}</strong>
+                        </div>
+
+                        <div>
+                            <span>Баланс после покупки</span>
+                            <strong className={balanceAfterBuy >= 0 ? "positive-value" : "negative-value"}>
+                                {formatMoney(balanceAfterBuy, buyCurrency)}
+                            </strong>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="primary-button color-button-green"
+                            onClick={handleBuyFromAsset}
+                            disabled={!price || buyQuantityNumber <= 0 || balanceAfterBuy < 0}
+                        >
+                            Купить
+                        </button>
+                    </div>
+
+                    {buyMessage && (
+                        <div className="asset-inline-buy-message">
+                            {buyMessage}
+                        </div>
+                    )}
+                </article>
+            )}
 
             {error && <div className="error-block">{error}</div>}
 
@@ -385,13 +544,13 @@ export function AssetDetailsPage() {
                                 <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
                                     <defs>
                                         <linearGradient id="lineChartGradientUp" x1="0" x2="0" y1="0" y2="1">
-                                            <stop offset="0%" stopColor="rgba(34, 197, 94, 0.42)" />
-                                            <stop offset="100%" stopColor="rgba(34, 197, 94, 0)" />
+                                            <stop offset="0%" stopColor="rgba(34, 197, 94, 0.5)" />
+                                            <stop offset="100%" stopColor="rgba(34, 197, 94, 0.02)" />
                                         </linearGradient>
 
                                         <linearGradient id="lineChartGradientDown" x1="0" x2="0" y1="0" y2="1">
-                                            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.42)" />
-                                            <stop offset="100%" stopColor="rgba(239, 68, 68, 0)" />
+                                            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.5)" />
+                                            <stop offset="100%" stopColor="rgba(239, 68, 68, 0.02)" />
                                         </linearGradient>
                                     </defs>
 
@@ -597,6 +756,66 @@ function RiskFactor({ label, value }: RiskFactorProps) {
             <strong>{value}</strong>
         </div>
     );
+}
+
+function loadStoredPortfolioState(): StoredPortfolioState {
+    const rawValue = window.localStorage.getItem(PORTFOLIO_STORAGE_KEY);
+
+    if (!rawValue) {
+        return createEmptyStoredPortfolioState();
+    }
+
+    try {
+        const parsed = JSON.parse(rawValue) as Partial<StoredPortfolioState>;
+
+        return {
+            balances: {
+                RUB: toNumber(parsed.balances?.RUB),
+                USD: toNumber(parsed.balances?.USD)
+            },
+            lots: Array.isArray(parsed.lots) ? parsed.lots : [],
+            closedTrades: Array.isArray(parsed.closedTrades) ? parsed.closedTrades : [],
+            transactions: Array.isArray(parsed.transactions) ? parsed.transactions : []
+        };
+    } catch {
+        return createEmptyStoredPortfolioState();
+    }
+}
+
+function saveStoredPortfolioState(value: StoredPortfolioState) {
+    window.localStorage.setItem(PORTFOLIO_STORAGE_KEY, JSON.stringify(value));
+}
+
+function createEmptyStoredPortfolioState(): StoredPortfolioState {
+    return {
+        balances: {
+            RUB: 0,
+            USD: 0
+        },
+        lots: [],
+        closedTrades: [],
+        transactions: []
+    };
+}
+
+function normalizeCurrency(value: string): Currency {
+    return value.toUpperCase() === "USD" ? "USD" : "RUB";
+}
+
+function parsePositiveNumber(value: string): number {
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function toNumber(value: unknown): number {
+    const parsed = Number(value);
+
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function createId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function translateAssetType(assetType: string): string {

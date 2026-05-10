@@ -16,6 +16,7 @@ import "./styles/final-mobile-polish.css";
 import "./styles/final-graph-compare-fix.css";
 import "./styles/final-last-mobile-fixes.css";
 import "./styles/final-colors-and-history.css";
+import "./styles/final-trading-polish.css";
 
 const rootElement = document.getElementById("root");
 
