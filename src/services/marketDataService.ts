@@ -60,9 +60,24 @@ export async function getAnalyticsSummary(ticker: string): Promise<AnalyticsSumm
     const priceChangePercent = firstClose === 0 ? 0 : (priceChange / firstClose) * 100;
     const averageVolume = average(candles.map((candle) => candle.volume));
     const volatilityPercent = calculateVolatilityPercent(closes);
+
+    const sourcePenalty = price.source === "DEMO" ? 16 : 0;
+    const cryptoPenalty = ticker.includes("USDT") ? 18 : 6;
+    const movementRisk = Math.abs(priceChangePercent) * 4.8;
+    const volatilityRisk = volatilityPercent * 18;
+    const drawdownRisk = priceChangePercent < 0 ? Math.abs(priceChangePercent) * 2.6 : 0;
+    const lowDataPenalty = candles.length < 20 ? 10 : 0;
+
     const riskScore = clamp(
-        Math.round(volatilityPercent * 5 + Math.abs(priceChangePercent) * 1.4),
-        0,
+        Math.round(
+            cryptoPenalty +
+            sourcePenalty +
+            lowDataPenalty +
+            movementRisk +
+            volatilityRisk +
+            drawdownRisk
+        ),
+        3,
         100
     );
 

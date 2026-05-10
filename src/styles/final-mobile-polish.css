@@ -1,0 +1,576 @@
+@media (max-width: 900px) {
+    .sidebar {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 10px 12px;
+        padding: 8px 10px;
+    }
+
+    .brand {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-start;
+    }
+
+    .brand > span {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        font-size: 12px;
+    }
+
+    .brand strong {
+        font-size: 14px;
+        white-space: nowrap;
+    }
+
+    .nav {
+        grid-column: 1 / -1;
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 0;
+    }
+
+    .nav a {
+        min-height: 28px;
+        padding: 6px 10px;
+        border-radius: 10px;
+        font-size: 12px;
+    }
+
+    .main-content {
+        padding: 8px;
+    }
+
+    .page {
+        gap: 8px;
+    }
+
+    .page-header,
+    .compact-page-header {
+        display: none;
+    }
+
+    .panel,
+    .compact-disclosure,
+    .asset-category-panel {
+        padding: 10px;
+        border-radius: 14px;
+    }
+
+    .compact-hero {
+        min-height: 58px;
+        padding: 10px 12px;
+        border-radius: 14px;
+    }
+
+    .compact-hero h1 {
+        font-size: 22px;
+    }
+
+    .eyebrow {
+        margin-bottom: 3px;
+        font-size: 9px;
+    }
+
+    .compact-disclosure-summary h2,
+    .asset-category-summary h2 {
+        font-size: 16px;
+    }
+
+    .compact-disclosure-summary span,
+    .asset-category-summary span {
+        font-size: 10px;
+    }
+
+    .dashboard-market-grid,
+    .dashboard-pulse-grid,
+    .dashboard-signal-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .dashboard-market-card,
+    .dashboard-pulse-card,
+    .dashboard-signal-card {
+        min-height: 52px;
+        padding: 8px 10px;
+        border-radius: 12px;
+    }
+
+    .dashboard-market-card span,
+    .dashboard-pulse-card span,
+    .dashboard-signal-card span {
+        font-size: 9px;
+    }
+
+    .dashboard-market-card em,
+    .dashboard-signal-card strong {
+        font-size: 13px;
+    }
+
+    .dashboard-market-card strong,
+    .dashboard-pulse-card strong,
+    .dashboard-signal-card em {
+        font-size: 15px;
+    }
+
+    .assets-page-ultra-compact {
+        gap: 8px;
+    }
+
+    .asset-category-list {
+        display: grid;
+        gap: 8px;
+    }
+
+    .asset-category-panel {
+        padding: 8px;
+    }
+
+    .asset-category-panel summary {
+        list-style: none;
+        cursor: pointer;
+    }
+
+    .asset-category-panel summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .asset-category-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .asset-category-summary > div {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .asset-category-body {
+        display: grid;
+        gap: 4px;
+        margin-top: 8px;
+    }
+
+    .asset-thin-row {
+        display: grid;
+        grid-template-columns: 0.72fr 1fr 0.65fr 0.95fr 0.68fr 0.58fr;
+        align-items: center;
+        gap: 6px;
+        min-height: 30px;
+        padding: 5px 7px;
+        border-radius: 10px;
+        border: 1px solid rgba(148, 163, 184, 0.1);
+        background: rgba(2, 6, 23, 0.26);
+    }
+
+    .asset-thin-row strong {
+        overflow: hidden;
+        color: #f8fafc;
+        font-size: 13px;
+        line-height: 1;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .asset-thin-row span,
+    .asset-thin-row em,
+    .asset-thin-row b,
+    .asset-thin-row i,
+    .asset-thin-row small {
+        overflow: hidden;
+        font-size: 10px;
+        font-style: normal;
+        font-weight: 800;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .asset-thin-row span {
+        color: #94a3b8;
+    }
+
+    .asset-thin-row em {
+        color: #38bdf8;
+        text-transform: uppercase;
+    }
+
+    .asset-thin-row b {
+        color: #f8fafc;
+    }
+
+    .asset-thin-row small {
+        color: #cbd5e1;
+    }
+
+    .asset-details-hero {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 16px;
+    }
+
+    .asset-details-hero-main {
+        display: grid;
+        gap: 6px;
+    }
+
+    .asset-details-hero-main h1 {
+        font-size: 30px;
+        margin: 0;
+    }
+
+    .asset-details-badges {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 4px;
+    }
+
+    .asset-details-badges span {
+        justify-content: center;
+        min-height: 22px;
+        padding: 0 6px;
+        font-size: 8px;
+    }
+
+    .asset-details-price-card {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+        padding: 10px;
+        border-radius: 14px;
+    }
+
+    .asset-details-price-card > span {
+        font-size: 9px;
+    }
+
+    .asset-details-price-card > strong {
+        font-size: 24px;
+    }
+
+    .asset-details-price-card > em {
+        font-size: 14px;
+    }
+
+    .asset-details-price-card > small {
+        font-size: 10px;
+    }
+
+    .asset-details-price-card .hero-actions {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .asset-details-price-card .hero-actions .primary-button,
+    .asset-details-price-card .hero-actions .ghost-button {
+        min-height: 30px;
+        padding: 0 6px;
+        border-radius: 10px;
+        font-size: 10px;
+    }
+
+    .asset-summary-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .asset-summary-grid .summary-card {
+        min-height: 42px;
+        padding: 8px;
+        border-radius: 12px;
+    }
+
+    .asset-summary-grid .summary-card span {
+        font-size: 8px;
+    }
+
+    .asset-summary-grid .summary-card strong {
+        font-size: 13px;
+    }
+
+    .asset-risk-panel {
+        display: none !important;
+    }
+
+    .asset-details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .asset-chart-panel {
+        padding: 10px;
+        border-radius: 14px;
+    }
+
+    .asset-chart-header {
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .asset-chart-header h2 {
+        font-size: 16px;
+    }
+
+    .asset-chart-controls {
+        gap: 5px;
+    }
+
+    .asset-chart-segment button {
+        min-height: 28px;
+        font-size: 10px;
+    }
+
+    .asset-line-chart {
+        height: 230px;
+    }
+
+    .asset-candle-strip-large {
+        display: flex !important;
+        grid-template-columns: none !important;
+        gap: 5px;
+        min-height: 230px;
+        overflow-x: auto;
+        padding: 8px;
+    }
+
+    .asset-candle-strip-large .asset-candle-bar {
+        flex: 0 0 18px;
+        min-height: 210px;
+    }
+
+    .asset-candle-strip-large .asset-candle-body {
+        width: 10px;
+    }
+
+    .compare-page .compare-empty-state,
+    .compare-empty-state {
+        min-height: 0 !important;
+        padding: 10px !important;
+    }
+
+    .compare-empty-state h2 {
+        font-size: 20px !important;
+    }
+
+    .compare-form-rich,
+    .compare-form {
+        grid-template-columns: 1fr 1fr auto !important;
+        gap: 6px;
+    }
+
+    .compare-form-rich input,
+    .compare-form input {
+        min-height: 32px;
+        font-size: 11px;
+    }
+
+    .compare-form-rich button,
+    .compare-form button {
+        min-height: 32px;
+        padding: 0 8px;
+        font-size: 10px;
+    }
+
+    .compare-result-grid,
+    .compare-summary-grid,
+    .compare-card-metrics {
+        grid-template-columns: 1fr !important;
+        gap: 8px;
+    }
+
+    .compare-metric-row {
+        display: grid !important;
+        grid-template-columns: 1fr auto 1fr !important;
+        align-items: center;
+        gap: 8px;
+        padding: 8px !important;
+        border-radius: 12px !important;
+    }
+
+    .compare-metric-row p,
+    .compare-summary-main,
+    .compare-summary-points {
+        display: none !important;
+    }
+
+    .portfolio-page h1 {
+        font-size: 28px;
+    }
+
+    .portfolio-page h1::before {
+        content: "Портфель";
+    }
+
+    .portfolio-page h1 {
+        font-size: 0;
+    }
+
+    .portfolio-page h1::before {
+        font-size: 28px;
+    }
+
+    .portfolio-account-panel,
+    .portfolio-buy-panel {
+        padding: 10px;
+        border-radius: 14px;
+    }
+
+    .portfolio-account-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 6px;
+    }
+
+    .portfolio-account-form {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr auto !important;
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .portfolio-account-card {
+        min-height: 44px;
+        padding: 8px;
+        border-radius: 12px;
+    }
+
+    .portfolio-account-card span {
+        font-size: 8px;
+    }
+
+    .portfolio-account-card strong {
+        font-size: 15px;
+    }
+
+    .portfolio-buy-form {
+        grid-template-columns: 1fr 0.7fr auto !important;
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .portfolio-buy-calculator {
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 6px;
+    }
+
+    .portfolio-calculator-metric {
+        min-height: 40px;
+        padding: 8px;
+        border-radius: 12px;
+    }
+
+    .portfolio-calculator-metric span {
+        font-size: 8px;
+    }
+
+    .portfolio-calculator-metric strong {
+        font-size: 11px;
+    }
+
+    .portfolio-account-form label,
+    .portfolio-buy-form label {
+        gap: 4px;
+        font-size: 9px;
+    }
+
+    .portfolio-account-form input,
+    .portfolio-buy-form input,
+    .portfolio-buy-form select,
+    .portfolio-line-actions input {
+        min-height: 30px;
+        padding: 0 8px;
+        border-radius: 10px;
+        font-size: 10px;
+    }
+
+    .portfolio-account-form button,
+    .portfolio-buy-form button {
+        min-height: 30px;
+        padding: 0 8px;
+        border-radius: 10px;
+        font-size: 10px;
+    }
+
+    .portfolio-line,
+    .compact-portfolio-line {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1.1fr) repeat(3, minmax(0, 0.78fr)) auto !important;
+        min-width: 0 !important;
+        gap: 5px;
+        min-height: 34px;
+        padding: 6px 7px;
+        border-radius: 10px;
+    }
+
+    .portfolio-line-title strong {
+        font-size: 12px;
+        white-space: nowrap;
+    }
+
+    .portfolio-line-title span {
+        display: none !important;
+    }
+
+    .portfolio-line-metrics,
+    .compact-portfolio-metrics {
+        display: contents !important;
+    }
+
+    .portfolio-inline-metric {
+        gap: 1px;
+    }
+
+    .portfolio-inline-metric:nth-of-type(1),
+    .portfolio-inline-metric:nth-of-type(6) {
+        display: none;
+    }
+
+    .portfolio-inline-metric span {
+        font-size: 7px;
+    }
+
+    .portfolio-inline-metric strong {
+        font-size: 9px;
+        white-space: normal;
+    }
+
+    .portfolio-line-actions,
+    .compact-portfolio-actions {
+        display: flex !important;
+        gap: 4px;
+    }
+
+    .portfolio-line-actions .primary-button,
+    .portfolio-line-actions .ghost-button {
+        min-height: 26px;
+        padding: 0 6px;
+        border-radius: 8px;
+        font-size: 8px;
+        width: auto;
+    }
+
+    .portfolio-line-actions input {
+        width: 46px;
+        min-height: 26px;
+        font-size: 8px;
+    }
+
+    .portfolio-holding-scroll {
+        overflow-x: visible !important;
+    }
+
+    .portfolio-lot-list {
+        gap: 4px;
+        margin-top: 4px;
+    }
+
+    .portfolio-lot-line .portfolio-line-title strong {
+        font-size: 10px;
+    }
+}

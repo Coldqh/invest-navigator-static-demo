@@ -12,6 +12,7 @@ import "./styles/ai-report.css";
 import "./styles/data.css";
 import "./styles/responsive.css";
 import "./styles/compact-layout.css";
+import "./styles/final-mobile-polish.css";
 
 const rootElement = document.getElementById("root");
 

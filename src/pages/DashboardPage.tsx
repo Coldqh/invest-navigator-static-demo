@@ -73,14 +73,6 @@ export function DashboardPage() {
                 ? growthLeader.priceChangePercent - fallLeader.priceChangePercent
                 : 0;
 
-        const riskGrowthMismatch =
-            [...analytics].sort((first, second) => {
-                const firstScore = first.riskScore - Math.max(first.priceChangePercent, 0) * 2;
-                const secondScore = second.riskScore - Math.max(second.priceChangePercent, 0) * 2;
-
-                return secondScore - firstScore;
-            })[0] ?? null;
-
         return {
             byGrowth,
             byFall,
@@ -103,66 +95,51 @@ export function DashboardPage() {
             riskLeader,
             volumeLeader,
             expensiveLeader,
-            cheapLeader,
-            riskGrowthMismatch
+            cheapLeader
         };
     }, [analytics]);
 
     const marketCards = useMemo<MarketCardData[]>(() => {
         return [
             {
-                label: "Наибольший рост",
+                label: "Рост",
                 ticker: market.growthLeader?.ticker,
-                value: market.growthLeader
-                    ? formatPercentWithSign(market.growthLeader.priceChangePercent)
-                    : "—",
+                value: market.growthLeader ? formatPercentWithSign(market.growthLeader.priceChangePercent) : "—",
                 className: "positive-value"
             },
             {
-                label: "Наибольшее падение",
+                label: "Падение",
                 ticker: market.fallLeader?.ticker,
-                value: market.fallLeader
-                    ? formatPercentWithSign(market.fallLeader.priceChangePercent)
-                    : "—",
+                value: market.fallLeader ? formatPercentWithSign(market.fallLeader.priceChangePercent) : "—",
                 className: "negative-value"
             },
             {
-                label: "Макс. волатильность",
+                label: "Волатильность",
                 ticker: market.volatilityLeader?.ticker,
-                value: market.volatilityLeader
-                    ? formatPercent(market.volatilityLeader.volatilityPercent)
-                    : "—"
+                value: market.volatilityLeader ? formatPercent(market.volatilityLeader.volatilityPercent) : "—"
             },
             {
-                label: "Макс. риск",
+                label: "Риск",
                 ticker: market.riskLeader?.ticker,
-                value: market.riskLeader
-                    ? `${market.riskLeader.riskScore}/100`
-                    : "—"
+                value: market.riskLeader ? `${market.riskLeader.riskScore}/100` : "—"
             },
             {
-                label: "Макс. объём",
+                label: "Объём",
                 ticker: market.volumeLeader?.ticker,
-                value: market.volumeLeader
-                    ? formatCompactNumber(market.volumeLeader.averageVolume)
-                    : "—"
+                value: market.volumeLeader ? formatCompactNumber(market.volumeLeader.averageVolume) : "—"
             },
             {
-                label: "Самый дорогой",
+                label: "Дорогой",
                 ticker: market.expensiveLeader?.ticker,
-                value: market.expensiveLeader
-                    ? formatNumber(market.expensiveLeader.currentPrice)
-                    : "—"
+                value: market.expensiveLeader ? formatNumber(market.expensiveLeader.currentPrice) : "—"
             },
             {
-                label: "Самый дешёвый",
+                label: "Дешёвый",
                 ticker: market.cheapLeader?.ticker,
-                value: market.cheapLeader
-                    ? formatNumber(market.cheapLeader.currentPrice)
-                    : "—"
+                value: market.cheapLeader ? formatNumber(market.cheapLeader.currentPrice) : "—"
             },
             {
-                label: "Разрыв рынка",
+                label: "Разрыв",
                 value: formatPercentWithSign(market.marketSpread)
             }
         ];
@@ -173,7 +150,7 @@ export function DashboardPage() {
     }
 
     return (
-        <section className="page dashboard-page">
+        <section className="page dashboard-page dashboard-page-ultra-compact">
             <div className="dashboard-hero dashboard-hero-clean compact-hero">
                 <div>
                     <p className="eyebrow">Dashboard</p>
@@ -181,13 +158,26 @@ export function DashboardPage() {
                 </div>
             </div>
 
-            <div className="dashboard-market-grid compact-market-grid">
-                {marketCards.map((card) => (
-                    <MarketCard key={card.label} card={card} />
-                ))}
-            </div>
+            <details className="panel compact-disclosure compact-disclosure-dashboard">
+                <summary className="compact-disclosure-summary">
+                    <div>
+                        <h2>Топы рынка</h2>
+                        <span>
+                            {market.growthLeader?.ticker ?? "—"} {market.growthLeader ? formatPercentWithSign(market.growthLeader.priceChangePercent) : ""}
+                        </span>
+                    </div>
+                </summary>
 
-            <details className="panel compact-disclosure compact-disclosure-dashboard" open>
+                <div className="compact-disclosure-body">
+                    <div className="dashboard-market-grid compact-market-grid">
+                        {marketCards.map((card) => (
+                            <MarketCard key={card.label} card={card} />
+                        ))}
+                    </div>
+                </div>
+            </details>
+
+            <details className="panel compact-disclosure compact-disclosure-dashboard">
                 <summary className="compact-disclosure-summary">
                     <div>
                         <h2>Рыночная ширина</h2>
@@ -206,10 +196,7 @@ export function DashboardPage() {
                         <PulseCard label="Средняя волатильность" value={formatPercent(market.averageVolatility)} />
                         <PulseCard label="Средний риск" value={`${Math.round(market.averageRisk)}/100`} />
                         <PulseCard label="Риск-давление" value={`${market.riskPressure}`} />
-                        <PulseCard
-                            label="Риск без импульса"
-                            value={market.riskGrowthMismatch ? market.riskGrowthMismatch.ticker : "—"}
-                        />
+                        <PulseCard label="Разрыв" value={formatPercentWithSign(market.marketSpread)} />
                     </div>
                 </div>
             </details>
@@ -229,33 +216,21 @@ export function DashboardPage() {
                         <SignalCard
                             label="Импульс"
                             item={market.growthLeader}
-                            value={
-                                market.growthLeader
-                                    ? formatPercentWithSign(market.growthLeader.priceChangePercent)
-                                    : "—"
-                            }
+                            value={market.growthLeader ? formatPercentWithSign(market.growthLeader.priceChangePercent) : "—"}
                             className="positive-value"
                         />
 
                         <SignalCard
                             label="Просадка"
                             item={market.fallLeader}
-                            value={
-                                market.fallLeader
-                                    ? formatPercentWithSign(market.fallLeader.priceChangePercent)
-                                    : "—"
-                            }
+                            value={market.fallLeader ? formatPercentWithSign(market.fallLeader.priceChangePercent) : "—"}
                             className="negative-value"
                         />
 
                         <SignalCard
                             label="Нерв рынка"
                             item={market.volatilityLeader}
-                            value={
-                                market.volatilityLeader
-                                    ? formatPercent(market.volatilityLeader.volatilityPercent)
-                                    : "—"
-                            }
+                            value={market.volatilityLeader ? formatPercent(market.volatilityLeader.volatilityPercent) : "—"}
                         />
 
                         <SignalCard
@@ -263,26 +238,6 @@ export function DashboardPage() {
                             item={market.riskLeader}
                             value={market.riskLeader ? `${market.riskLeader.riskScore}/100` : "—"}
                         />
-                    </div>
-                </div>
-            </details>
-
-            <details className="panel compact-disclosure compact-disclosure-dashboard">
-                <summary className="compact-disclosure-summary">
-                    <div>
-                        <h2>Топы рынка</h2>
-                        <span>Рост · Падение · Волатильность · Риск · Объём · Цена</span>
-                    </div>
-                </summary>
-
-                <div className="compact-disclosure-body">
-                    <div className="dashboard-grid dashboard-grid-main compact-dashboard-rankings">
-                        <DashboardRanking title="Рост" items={market.byGrowth.slice(0, 3)} mode="percent" />
-                        <DashboardRanking title="Падение" items={market.byFall.slice(0, 3)} mode="percent" />
-                        <DashboardRanking title="Волатильность" items={market.byVolatility.slice(0, 3)} mode="volatility" />
-                        <DashboardRanking title="Риск" items={market.byRisk.slice(0, 3)} mode="risk" />
-                        <DashboardRanking title="Объём" items={market.byVolume.slice(0, 3)} mode="volume" />
-                        <DashboardRanking title="Цена" items={market.byPriceDesc.slice(0, 3)} mode="price" />
                     </div>
                 </div>
             </details>
@@ -354,64 +309,6 @@ function SignalCard({ label, item, value, className }: SignalCardProps) {
             <em className={className}>{value}</em>
         </Link>
     );
-}
-
-type DashboardRankingProps = {
-    title: string;
-    items: AnalyticsSummary[];
-    mode: RankingMode;
-};
-
-function DashboardRanking({ title, items, mode }: DashboardRankingProps) {
-    return (
-        <article className="panel dashboard-ranking-panel compact-ranking-panel">
-            <div className="panel-header compact-panel-header">
-                <div>
-                    <h2>{title}</h2>
-                </div>
-            </div>
-
-            <div className="ranking-list">
-                {items.map((item, index) => (
-                    <Link to={`/assets/${item.ticker}`} className="ranking-row compact-ranking-row" key={item.ticker}>
-                        <span>#{index + 1}</span>
-                        <strong>{item.ticker}</strong>
-                        <em className={getRankingClassName(item, mode)}>
-                            {formatRankingValue(item, mode)}
-                        </em>
-                    </Link>
-                ))}
-            </div>
-        </article>
-    );
-}
-
-function getRankingClassName(item: AnalyticsSummary, mode: RankingMode): string {
-    if (mode !== "percent") {
-        return "";
-    }
-
-    return item.priceChangePercent >= 0 ? "positive-value" : "negative-value";
-}
-
-function formatRankingValue(item: AnalyticsSummary, mode: RankingMode): string {
-    if (mode === "risk") {
-        return `${item.riskScore}/100`;
-    }
-
-    if (mode === "volatility") {
-        return formatPercent(item.volatilityPercent);
-    }
-
-    if (mode === "volume") {
-        return formatCompactNumber(item.averageVolume);
-    }
-
-    if (mode === "price") {
-        return formatNumber(item.currentPrice);
-    }
-
-    return formatPercentWithSign(item.priceChangePercent);
 }
 
 function average(values: number[]): number {
