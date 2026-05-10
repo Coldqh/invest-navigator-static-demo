@@ -1,344 +1,203 @@
-import { useMemo, useState } from "react";
-import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
 import { getAnalyticsSummary } from "../services/marketDataService";
 import type { AnalyticsSummary, Asset } from "../types/domain";
 
-type CompareWinner = "FIRST" | "SECOND" | "DRAW";
-
 type CompareMetric = {
+    key: string;
     label: string;
-    firstValue: string;
-    secondValue: string;
-    winner: CompareWinner;
+    leftValue: string;
+    rightValue: string;
+    leftScore: number;
+    rightScore: number;
+    higherIsBetter: boolean;
 };
 
 export function ComparePage() {
     const assets = useMemo(() => getAssets(), []);
-    const defaultFirstTicker = assets[0]?.ticker ?? "SBER";
-    const defaultSecondTicker = assets[1]?.ticker ?? "BTCUSDT";
+    const [leftTicker, setLeftTicker] = useState(assets[0]?.ticker ?? "");
+    const [rightTicker, setRightTicker] = useState(assets[1]?.ticker ?? assets[0]?.ticker ?? "");
 
-    const [firstTicker, setFirstTicker] = useState(defaultFirstTicker);
-    const [secondTicker, setSecondTicker] = useState(defaultSecondTicker);
+    const [leftAnalytics, setLeftAnalytics] = useState<AnalyticsSummary | null>(null);
+    const [rightAnalytics, setRightAnalytics] = useState<AnalyticsSummary | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const [firstItem, setFirstItem] = useState<AnalyticsSummary | null>(null);
-    const [secondItem, setSecondItem] = useState<AnalyticsSummary | null>(null);
+    const leftAsset = useMemo(
+        () => assets.find((asset) => asset.ticker === leftTicker) ?? null,
+        [assets, leftTicker]
+    );
 
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState("");
+    const rightAsset = useMemo(
+        () => assets.find((asset) => asset.ticker === rightTicker) ?? null,
+        [assets, rightTicker]
+    );
 
-    async function handleCompare(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    useEffect(() => {
+        async function load() {
+            if (!leftTicker || !rightTicker) {
+                return;
+            }
 
-        const normalizedFirstTicker = firstTicker.trim().toUpperCase();
-        const normalizedSecondTicker = secondTicker.trim().toUpperCase();
-
-        if (!normalizedFirstTicker || !normalizedSecondTicker) {
-            setError("Выберите два тикера для сравнения");
-            return;
-        }
-
-        if (normalizedFirstTicker === normalizedSecondTicker) {
-            setError("Выберите два разных актива");
-            return;
-        }
-
-        try {
-            setError("");
             setIsLoading(true);
 
-            const [loadedFirstItem, loadedSecondItem] = await Promise.all([
-                getAnalyticsSummary(normalizedFirstTicker),
-                getAnalyticsSummary(normalizedSecondTicker)
-            ]);
+            try {
+                const [left, right] = await Promise.all([
+                    getAnalyticsSummary(leftTicker),
+                    getAnalyticsSummary(rightTicker)
+                ]);
 
-            setFirstItem(loadedFirstItem);
-            setSecondItem(loadedSecondItem);
-        } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "Ошибка сравнения");
-        } finally {
-            setIsLoading(false);
+                setLeftAnalytics(left);
+                setRightAnalytics(right);
+            } finally {
+                setIsLoading(false);
+            }
         }
-    }
 
-    const firstAsset = useMemo(() => {
-        return assets.find((asset) => asset.ticker === firstItem?.ticker) ?? null;
-    }, [assets, firstItem?.ticker]);
+        load();
+    }, [leftTicker, rightTicker]);
 
-    const secondAsset = useMemo(() => {
-        return assets.find((asset) => asset.ticker === secondItem?.ticker) ?? null;
-    }, [assets, secondItem?.ticker]);
-
-    const metrics = useMemo(() => {
-        if (!firstItem || !secondItem) {
+    const metrics = useMemo<CompareMetric[]>(() => {
+        if (!leftAnalytics || !rightAnalytics) {
             return [];
         }
 
-        return buildCompareMetrics(firstItem, secondItem);
-    }, [firstItem, secondItem]);
+        return [
+            {
+                key: "price",
+                label: "Цена",
+                leftValue: formatMoney(leftAnalytics.currentPrice, leftAsset?.currency ?? ""),
+                rightValue: formatMoney(rightAnalytics.currentPrice, rightAsset?.currency ?? ""),
+                leftScore: leftAnalytics.currentPrice,
+                rightScore: rightAnalytics.currentPrice,
+                higherIsBetter: true
+            },
+            {
+                key: "change",
+                label: "Изменение",
+                leftValue: formatPercentWithSign(leftAnalytics.priceChangePercent),
+                rightValue: formatPercentWithSign(rightAnalytics.priceChangePercent),
+                leftScore: leftAnalytics.priceChangePercent,
+                rightScore: rightAnalytics.priceChangePercent,
+                higherIsBetter: true
+            },
+            {
+                key: "risk",
+                label: "Риск",
+                leftValue: `${leftAnalytics.riskScore}/100`,
+                rightValue: `${rightAnalytics.riskScore}/100`,
+                leftScore: leftAnalytics.riskScore,
+                rightScore: rightAnalytics.riskScore,
+                higherIsBetter: false
+            },
+            {
+                key: "volatility",
+                label: "Волатильность",
+                leftValue: formatPercent(leftAnalytics.volatilityPercent),
+                rightValue: formatPercent(rightAnalytics.volatilityPercent),
+                leftScore: leftAnalytics.volatilityPercent,
+                rightScore: rightAnalytics.volatilityPercent,
+                higherIsBetter: false
+            },
+            {
+                key: "volume",
+                label: "Объём",
+                leftValue: formatCompactNumber(leftAnalytics.averageVolume),
+                rightValue: formatCompactNumber(rightAnalytics.averageVolume),
+                leftScore: leftAnalytics.averageVolume,
+                rightScore: rightAnalytics.averageVolume,
+                higherIsBetter: true
+            }
+        ];
+    }, [leftAnalytics, rightAnalytics, leftAsset?.currency, rightAsset?.currency]);
 
-    const firstWins = metrics.filter((metric) => metric.winner === "FIRST").length;
-    const secondWins = metrics.filter((metric) => metric.winner === "SECOND").length;
-    const drawCount = metrics.filter((metric) => metric.winner === "DRAW").length;
+    if (isLoading) {
+        return <LoadingBlock text="Сравниваем активы..." />;
+    }
 
     return (
-        <section className="page compare-page">
-            <div className="page-header">
-                <div>
-                    <p className="eyebrow">Сравнение</p>
-                    <h1>Два актива рядом</h1>
+        <section className="page compare-vs-page">
+            <div className="compare-vs-top">
+                <select
+                    value={leftTicker}
+                    onChange={(event) => setLeftTicker(event.target.value)}
+                    className="compare-vs-select"
+                >
+                    {assets.map((asset) => (
+                        <option key={asset.id} value={asset.ticker}>
+                            {asset.ticker} — {asset.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="compare-vs-middle">
+                <div className="compare-vs-badge">VS</div>
+
+                <div className="compare-vs-metrics">
+                    {metrics.map((metric) => {
+                        const leftClass = resolveMetricClass(
+                            metric.leftScore,
+                            metric.rightScore,
+                            metric.higherIsBetter,
+                            true
+                        );
+
+                        const rightClass = resolveMetricClass(
+                            metric.leftScore,
+                            metric.rightScore,
+                            metric.higherIsBetter,
+                            false
+                        );
+
+                        return (
+                            <div className="compare-vs-row" key={metric.key}>
+                                <div className={`compare-vs-value compare-vs-left ${leftClass}`}>
+                                    {metric.leftValue}
+                                </div>
+
+                                <div className="compare-vs-label">{metric.label}</div>
+
+                                <div className={`compare-vs-value compare-vs-right ${rightClass}`}>
+                                    {metric.rightValue}
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            {error && <div className="error-block">{error}</div>}
-
-            <article className="panel compare-control-panel">
-                <form className="compare-form compare-form-rich" onSubmit={handleCompare}>
-                    <label>
-                        Первый актив
-                        <select
-                            value={firstTicker}
-                            onChange={(event) => setFirstTicker(event.target.value)}
-                        >
-                            {assets.map((asset) => (
-                                <option key={asset.id} value={asset.ticker}>
-                                    {asset.ticker} — {asset.name}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <label>
-                        Второй актив
-                        <select
-                            value={secondTicker}
-                            onChange={(event) => setSecondTicker(event.target.value)}
-                        >
-                            {assets.map((asset) => (
-                                <option key={asset.id} value={asset.ticker}>
-                                    {asset.ticker} — {asset.name}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-
-                    <button type="submit" className="primary-button" disabled={isLoading}>
-                        {isLoading ? "Сравниваем..." : "Сравнить"}
-                    </button>
-                </form>
-            </article>
-
-            {!firstItem || !secondItem ? (
-                <article className="compare-empty-state">
-                    <div>
-                        <p className="eyebrow">Быстрый старт</p>
-                        <h2>{firstTicker} против {secondTicker}</h2>
-                    </div>
-                </article>
-            ) : (
-                <>
-                    <div className="compare-hero-grid">
-                        <CompareAssetCard
-                            item={firstItem}
-                            asset={firstAsset}
-                            side="FIRST"
-                            wins={firstWins}
-                        />
-
-                        <div className="compare-versus">
-                            <span>VS</span>
-                            <strong>
-                                {firstWins} : {secondWins}
-                            </strong>
-                            <em>{drawCount} ничьих</em>
-                        </div>
-
-                        <CompareAssetCard
-                            item={secondItem}
-                            asset={secondAsset}
-                            side="SECOND"
-                            wins={secondWins}
-                        />
-                    </div>
-
-                    <article className="panel">
-                        <div className="panel-header">
-                            <div>
-                                <h2>Победители по категориям</h2>
-                            </div>
-                        </div>
-
-                        <div className="compare-metric-list">
-                            {metrics.map((metric) => (
-                                <CompareMetricRow
-                                    key={metric.label}
-                                    metric={metric}
-                                    firstTicker={firstItem.ticker}
-                                    secondTicker={secondItem.ticker}
-                                />
-                            ))}
-                        </div>
-                    </article>
-                </>
-            )}
+            <div className="compare-vs-bottom">
+                <select
+                    value={rightTicker}
+                    onChange={(event) => setRightTicker(event.target.value)}
+                    className="compare-vs-select"
+                >
+                    {assets.map((asset) => (
+                        <option key={asset.id} value={asset.ticker}>
+                            {asset.ticker} — {asset.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
         </section>
     );
 }
 
-type CompareAssetCardProps = {
-    item: AnalyticsSummary;
-    asset: Asset | null;
-    side: "FIRST" | "SECOND";
-    wins: number;
-};
-
-function CompareAssetCard({ item, asset, side, wins }: CompareAssetCardProps) {
-    const isPositive = item.priceChangePercent >= 0;
-
-    return (
-        <article className={`compare-asset-card compare-asset-card-${side.toLowerCase()}`}>
-            <div className="compare-asset-top">
-                <div>
-                    <span className="eyebrow">{asset?.exchange ?? item.source}</span>
-                    <h2>{item.ticker}</h2>
-                    <p>{item.name}</p>
-                </div>
-
-                <span className={`source-pill source-${item.source.toLowerCase()}`}>
-                    {item.source}
-                </span>
-            </div>
-
-            <div className="compare-price-block">
-                <span>Текущая цена</span>
-                <strong>{formatMoney(item.currentPrice, asset?.currency ?? "USD")}</strong>
-                <em className={isPositive ? "positive-value" : "negative-value"}>
-                    {isPositive ? "+" : ""}
-                    {formatPercent(item.priceChangePercent)}
-                </em>
-            </div>
-
-            <div className="compare-card-metrics">
-                <MiniMetric label="Побед" value={String(wins)} />
-                <MiniMetric label="Риск" value={`${item.riskScore}/100`} />
-                <MiniMetric label="Волатильность" value={formatPercent(item.volatilityPercent)} />
-                <MiniMetric label="Объём" value={formatCompactNumber(item.averageVolume)} />
-            </div>
-
-            <div className="compare-card-actions">
-                <Link to={`/assets/${item.ticker}`} className="primary-button">
-                    Открыть
-                </Link>
-
-                <Link to="/portfolio" className="ghost-button">
-                    Купить
-                </Link>
-            </div>
-        </article>
-    );
-}
-
-type MiniMetricProps = {
-    label: string;
-    value: string;
-};
-
-function MiniMetric({ label, value }: MiniMetricProps) {
-    return (
-        <div className="compare-mini-metric">
-            <span>{label}</span>
-            <strong>{value}</strong>
-        </div>
-    );
-}
-
-type CompareMetricRowProps = {
-    metric: CompareMetric;
-    firstTicker: string;
-    secondTicker: string;
-};
-
-function CompareMetricRow({ metric, firstTicker, secondTicker }: CompareMetricRowProps) {
-    return (
-        <div className="compare-metric-row compare-metric-row-compact">
-            <div>
-                <span>{metric.label}</span>
-            </div>
-
-            <strong className={metric.winner === "FIRST" ? "compare-winner" : ""}>
-                {metric.firstValue}
-            </strong>
-
-            <strong className={metric.winner === "SECOND" ? "compare-winner" : ""}>
-                {metric.secondValue}
-            </strong>
-
-            <em>
-                {metric.winner === "FIRST" && firstTicker}
-                {metric.winner === "SECOND" && secondTicker}
-                {metric.winner === "DRAW" && "Ничья"}
-            </em>
-        </div>
-    );
-}
-
-function buildCompareMetrics(
-    first: AnalyticsSummary,
-    second: AnalyticsSummary
-): CompareMetric[] {
-    return [
-        {
-            label: "Рост",
-            firstValue: formatPercent(first.priceChangePercent),
-            secondValue: formatPercent(second.priceChangePercent),
-            winner: compareHigherIsBetter(first.priceChangePercent, second.priceChangePercent)
-        },
-        {
-            label: "Риск",
-            firstValue: `${first.riskScore}/100`,
-            secondValue: `${second.riskScore}/100`,
-            winner: compareLowerIsBetter(first.riskScore, second.riskScore)
-        },
-        {
-            label: "Волатильность",
-            firstValue: formatPercent(first.volatilityPercent),
-            secondValue: formatPercent(second.volatilityPercent),
-            winner: compareLowerIsBetter(first.volatilityPercent, second.volatilityPercent)
-        },
-        {
-            label: "Объём",
-            firstValue: formatCompactNumber(first.averageVolume),
-            secondValue: formatCompactNumber(second.averageVolume),
-            winner: compareHigherIsBetter(first.averageVolume, second.averageVolume)
-        },
-        {
-            label: "Цена",
-            firstValue: formatNumber(first.currentPrice),
-            secondValue: formatNumber(second.currentPrice),
-            winner: compareHigherIsBetter(first.currentPrice, second.currentPrice)
-        }
-    ];
-}
-
-function compareHigherIsBetter(firstValue: number, secondValue: number): CompareWinner {
-    if (almostEqual(firstValue, secondValue)) {
-        return "DRAW";
+function resolveMetricClass(
+    leftScore: number,
+    rightScore: number,
+    higherIsBetter: boolean,
+    isLeft: boolean
+): string {
+    if (leftScore === rightScore) {
+        return "";
     }
 
-    return firstValue > secondValue ? "FIRST" : "SECOND";
-}
+    const leftBetter = higherIsBetter ? leftScore > rightScore : leftScore < rightScore;
+    const isBetter = isLeft ? leftBetter : !leftBetter;
 
-function compareLowerIsBetter(firstValue: number, secondValue: number): CompareWinner {
-    if (almostEqual(firstValue, secondValue)) {
-        return "DRAW";
-    }
-
-    return firstValue < secondValue ? "FIRST" : "SECOND";
-}
-
-function almostEqual(firstValue: number, secondValue: number): boolean {
-    return Math.abs(firstValue - secondValue) < 0.0001;
+    return isBetter ? "metric-better" : "metric-worse";
 }
 
 function formatMoney(value: number, currency: string): string {
@@ -347,16 +206,14 @@ function formatMoney(value: number, currency: string): string {
     }).format(value)} ${currency}`;
 }
 
-function formatNumber(value: number): string {
-    return new Intl.NumberFormat("ru-RU", {
-        maximumFractionDigits: 4
-    }).format(value);
-}
-
 function formatPercent(value: number): string {
     return `${new Intl.NumberFormat("ru-RU", {
         maximumFractionDigits: 2
     }).format(value)}%`;
+}
+
+function formatPercentWithSign(value: number): string {
+    return `${value >= 0 ? "+" : ""}${formatPercent(value)}`;
 }
 
 function formatCompactNumber(value: number): string {

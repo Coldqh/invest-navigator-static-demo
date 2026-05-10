@@ -80,10 +80,10 @@ export function AssetDetailsPage() {
             setPrice(loadedPrice);
             setAnalytics(loadedAnalytics);
             setCandles(loadedCandles);
-        } catch (error: unknown) {
+        } catch (nextError: unknown) {
             setError(
-                error instanceof Error
-                    ? error.message
+                nextError instanceof Error
+                    ? nextError.message
                     : "Не удалось загрузить данные актива"
             );
         } finally {
@@ -97,12 +97,11 @@ export function AssetDetailsPage() {
             setIsChartLoading(true);
 
             const loadedCandles = await getCandles(currentAsset.ticker, period);
-
             setCandles(loadedCandles);
-        } catch (error: unknown) {
+        } catch (nextError: unknown) {
             setError(
-                error instanceof Error
-                    ? error.message
+                nextError instanceof Error
+                    ? nextError.message
                     : "Не удалось загрузить график"
             );
         } finally {
@@ -133,10 +132,10 @@ export function AssetDetailsPage() {
             setIsGeneratingReport(true);
             const nextReport = await generateAssetReport(analytics);
             setReport(nextReport);
-        } catch (error: unknown) {
+        } catch (nextError: unknown) {
             setError(
-                error instanceof Error
-                    ? error.message
+                nextError instanceof Error
+                    ? nextError.message
                     : "Не удалось создать AI-отчёт"
             );
         } finally {
@@ -259,9 +258,7 @@ export function AssetDetailsPage() {
                 <div className="asset-details-price-card">
                     <span>Текущая цена</span>
                     <strong>
-                        {price
-                            ? formatMoney(price.price, asset.currency)
-                            : "—"}
+                        {price ? formatMoney(price.price, asset.currency) : "—"}
                     </strong>
 
                     {analytics && (
@@ -319,7 +316,11 @@ export function AssetDetailsPage() {
 
                 <SummaryCard
                     label="Изменение"
-                    value={analytics ? `${isPositive ? "+" : ""}${formatPercent(analytics.priceChangePercent)}` : "—"}
+                    value={
+                        analytics
+                            ? `${isPositive ? "+" : ""}${formatPercent(analytics.priceChangePercent)}`
+                            : "—"
+                    }
                     valueClassName={isPositive ? "positive-value" : "negative-value"}
                 />
             </div>

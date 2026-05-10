@@ -1,692 +1,800 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { AiReportPanel } from "../components/AiReportPanel";
-import { LoadingBlock } from "../components/LoadingBlock";
-import { getAssets } from "../services/assetsService";
-import { generatePortfolioReport, type AiReport } from "../services/browserAiService";
-import {
-    buyAsset,
-    getClosedTrades,
-    getSimulator,
-    resetPortfolio,
-    seedDemoPortfolio,
-    sellLot,
-    updateAccount,
-    type ClosedTrade
-} from "../services/browserPortfolioService";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { getAsset, getAssets } from "../services/assetsService";
 import { getMarketPrice } from "../services/marketDataService";
-import type {
-    MarketPrice,
-    PortfolioLotView,
-    PortfolioSimulator,
-    PortfolioTransaction
-} from "../types/domain";
+import type { Asset } from "../types/domain";
+
+type Currency = "RUB" | "USD";
+type ExpandedPanel = "BUY" | "BALANCE" | null;
+
+type AccountBalances = {
+    RUB: number;
+    USD: number;
+};
+
+type PortfolioLot = {
+    id: string;
+    ticker: string;
+    quantity: number;
+    purchasePrice: number;
+    currency: Currency;
+    purchasedAt: string;
+};
+
+type ClosedTrade = {
+    id: string;
+    ticker: string;
+    quantity: number;
+    purchasePrice: number;
+    sellPrice: number;
+    currency: Currency;
+    purchasedAt: string;
+    soldAt: string;
+};
+
+type PersistedPortfolioState = {
+    balances: AccountBalances;
+    lots: PortfolioLot[];
+    closedTrades: ClosedTrade[];
+};
+
+type GroupedHolding = {
+    ticker: string;
+    asset: Asset | null;
+    currency: Currency;
+    quantity: number;
+    currentPrice: number;
+    totalInvested: number;
+    currentValue: number;
+    pnl: number;
+    pnlPercent: number;
+    lots: PortfolioLot[];
+};
+
+const PORTFOLIO_STORAGE_KEY = "invest-navigator-portfolio-state";
+const LEGACY_STORAGE_KEYS = [
+    "invest-navigator-portfolio-state",
+    "investNavigatorPortfolioState",
+    "invest-navigator-portfolio",
+    "portfolio-state"
+];
 
 export function PortfolioPage() {
     const assets = useMemo(() => getAssets(), []);
+    const [portfolioState, setPortfolioState] = useState<PersistedPortfolioState>(() => {
+        return loadPortfolioState();
+    });
 
-    const [simulator, setSimulator] = useState<PortfolioSimulator | null>(null);
-    const [closedTrades, setClosedTrades] = useState<ClosedTrade[]>([]);
-    const [rubBalance, setRubBalance] = useState("");
-    const [usdBalance, setUsdBalance] = useState("");
-    const [buyTicker, setBuyTicker] = useState(assets[0]?.ticker ?? "SBER");
-    const [buyQuantity, setBuyQuantity] = useState("");
-    const [buyQuote, setBuyQuote] = useState<MarketPrice | null>(null);
-    const [expandedTickers, setExpandedTickers] = useState<Record<string, boolean>>({});
+    const [prices, setPrices] = useState<Record<string, number>>({});
+    const [isPriceLoading, setIsPriceLoading] = useState(true);
+
+    const [expandedPanel, setExpandedPanel] = useState<ExpandedPanel>(null);
+    const [expandedHoldings, setExpandedHoldings] = useState<Record<string, boolean>>({});
     const [sellQuantities, setSellQuantities] = useState<Record<string, string>>({});
-    const [report, setReport] = useState<AiReport | null>(null);
-    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState("");
+
+    const [buyTicker, setBuyTicker] = useState(assets[0]?.ticker ?? "");
+    const [buyQuantity, setBuyQuantity] = useState("1");
+
+    const [balanceCurrency, setBalanceCurrency] = useState<Currency>("RUB");
+    const [balanceValue, setBalanceValue] = useState("");
 
     useEffect(() => {
-        refresh();
-    }, []);
+        savePortfolioState(portfolioState);
+    }, [portfolioState]);
 
     useEffect(() => {
-        let isMounted = true;
+        async function loadPrices() {
+            setIsPriceLoading(true);
 
-        async function loadBuyQuote() {
             try {
-                setBuyQuote(null);
-                const quote = await getMarketPrice(buyTicker);
+                const uniqueTickers = Array.from(
+                    new Set([
+                        ...assets.map((asset) => asset.ticker),
+                        ...portfolioState.lots.map((lot) => lot.ticker)
+                    ])
+                );
 
-                if (isMounted) {
-                    setBuyQuote(quote);
-                }
-            } catch {
-                if (isMounted) {
-                    setBuyQuote(null);
-                }
+                const entries = await Promise.all(
+                    uniqueTickers.map(async (ticker) => {
+                        try {
+                            const marketPrice = await getMarketPrice(ticker);
+                            return [ticker, marketPrice.price] as const;
+                        } catch {
+                            return [ticker, 0] as const;
+                        }
+                    })
+                );
+
+                setPrices(Object.fromEntries(entries));
+            } finally {
+                setIsPriceLoading(false);
             }
         }
 
-        loadBuyQuote();
+        loadPrices();
+    }, [assets, portfolioState.lots]);
 
-        return () => {
-            isMounted = false;
-        };
+    const selectedBuyAsset = useMemo(() => {
+        return getAsset(buyTicker);
     }, [buyTicker]);
 
-    async function refresh() {
-        setIsLoading(true);
+    const buyCurrentPrice = selectedBuyAsset ? prices[selectedBuyAsset.ticker] ?? 0 : 0;
+    const buyQuantityNumber = parsePositiveNumber(buyQuantity);
+    const buyCurrency = (selectedBuyAsset?.currency as Currency | undefined) ?? "RUB";
+    const buyTotalCost = buyCurrentPrice * buyQuantityNumber;
+    const buyBalanceAfter = portfolioState.balances[buyCurrency] - buyTotalCost;
 
-        const loadedSimulator = await getSimulator();
-        const loadedClosedTrades = getClosedTrades();
+    const groupedHoldings = useMemo<GroupedHolding[]>(() => {
+        const groups = new Map<string, PortfolioLot[]>();
 
-        setSimulator(loadedSimulator);
-        setClosedTrades(loadedClosedTrades);
-        setRubBalance(String(loadedSimulator.account.rubBalance));
-        setUsdBalance(String(loadedSimulator.account.usdBalance));
-        setIsLoading(false);
-    }
-
-    function handleSaveAccount(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        updateAccount({
-            rubBalance: Number(rubBalance),
-            usdBalance: Number(usdBalance)
+        portfolioState.lots.forEach((lot) => {
+            const existing = groups.get(lot.ticker) ?? [];
+            existing.push(lot);
+            groups.set(lot.ticker, existing);
         });
 
-        refresh();
+        return Array.from(groups.entries()).map(([ticker, lots]) => {
+            const asset = getAsset(ticker);
+            const quantity = lots.reduce((sum, lot) => sum + lot.quantity, 0);
+            const totalInvested = lots.reduce((sum, lot) => sum + lot.quantity * lot.purchasePrice, 0);
+            const currentPrice = prices[ticker] ?? 0;
+            const currentValue = quantity * currentPrice;
+            const pnl = currentValue - totalInvested;
+            const pnlPercent = totalInvested > 0 ? (pnl / totalInvested) * 100 : 0;
+
+            return {
+                ticker,
+                asset,
+                currency: (asset?.currency as Currency | undefined) ?? lots[0]?.currency ?? "RUB",
+                quantity,
+                currentPrice,
+                totalInvested,
+                currentValue,
+                pnl,
+                pnlPercent,
+                lots: [...lots].sort((first, second) => {
+                    return new Date(second.purchasedAt).getTime() - new Date(first.purchasedAt).getTime();
+                })
+            };
+        }).sort((first, second) => {
+            return second.currentValue - first.currentValue;
+        });
+    }, [portfolioState.lots, prices]);
+
+    const statistics = useMemo(() => {
+        const lotsCount = portfolioState.lots.length;
+        const assetsCount = groupedHoldings.length;
+
+        const unrealized = groupedHoldings.reduce((sum, group) => sum + group.pnl, 0);
+        const realized = portfolioState.closedTrades.reduce((sum, trade) => {
+            return sum + (trade.sellPrice - trade.purchasePrice) * trade.quantity;
+        }, 0);
+
+        return {
+            lotsCount,
+            assetsCount,
+            unrealized,
+            realized
+        };
+    }, [groupedHoldings, portfolioState.closedTrades]);
+
+    function handleTogglePanel(panel: ExpandedPanel) {
+        setExpandedPanel((current) => (current === panel ? null : panel));
     }
 
-    async function handleBuy(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
+    function handleSetBalance() {
+        const nextValue = parsePositiveNumber(balanceValue);
 
-        try {
-            setError("");
-            setReport(null);
-            await buyAsset(buyTicker.trim().toUpperCase(), Number(buyQuantity));
-            setBuyQuantity("");
-            await refresh();
-        } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "Ошибка покупки");
-        }
+        setPortfolioState((current) => ({
+            ...current,
+            balances: {
+                ...current.balances,
+                [balanceCurrency]: nextValue
+            }
+        }));
+
+        setBalanceValue("");
+        setExpandedPanel(null);
     }
 
-    async function handleSell(lot: PortfolioLotView) {
-        try {
-            setError("");
-            setReport(null);
-            await sellLot(lot.id, Number(sellQuantities[lot.id]));
-            setSellQuantities((current) => ({ ...current, [lot.id]: "" }));
-            await refresh();
-        } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "Ошибка продажи");
-        }
-    }
-
-    async function handleGenerateReport() {
-        if (!simulator) {
+    function handleBuy() {
+        if (!selectedBuyAsset || buyQuantityNumber <= 0 || buyCurrentPrice <= 0) {
             return;
         }
 
-        try {
-            setError("");
-            setIsGeneratingReport(true);
-            const nextReport = await generatePortfolioReport(simulator);
-            setReport(nextReport);
-        } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : "Ошибка AI-анализа портфеля");
-        } finally {
-            setIsGeneratingReport(false);
+        const currency = selectedBuyAsset.currency as Currency;
+        const totalCost = buyCurrentPrice * buyQuantityNumber;
+
+        if (portfolioState.balances[currency] < totalCost) {
+            return;
         }
+
+        const nextLot: PortfolioLot = {
+            id: cryptoRandomId(),
+            ticker: selectedBuyAsset.ticker,
+            quantity: buyQuantityNumber,
+            purchasePrice: buyCurrentPrice,
+            currency,
+            purchasedAt: new Date().toISOString()
+        };
+
+        setPortfolioState((current) => ({
+            ...current,
+            balances: {
+                ...current.balances,
+                [currency]: current.balances[currency] - totalCost
+            },
+            lots: [nextLot, ...current.lots]
+        }));
+
+        setExpandedHoldings((current) => ({
+            ...current,
+            [selectedBuyAsset.ticker]: true
+        }));
+
+        setBuyQuantity("1");
+        setExpandedPanel(null);
     }
 
-    async function handleSeedDemo() {
-        seedDemoPortfolio();
-        setReport(null);
-        await refresh();
-    }
+    function handleSell(lot: PortfolioLot) {
+        const requestedQuantity = parsePositiveNumber(sellQuantities[lot.id] || "");
 
-    async function handleReset() {
-        resetPortfolio();
-        setReport(null);
-        await refresh();
-    }
+        if (requestedQuantity <= 0 || requestedQuantity > lot.quantity) {
+            return;
+        }
 
-    const selectedAsset = useMemo(() => {
-        return assets.find((asset) => asset.ticker === buyTicker) ?? null;
-    }, [assets, buyTicker]);
+        const currentPrice = prices[lot.ticker] ?? 0;
 
-    const buyCalculator = useMemo(() => {
-        const quantity = Number(buyQuantity);
+        if (currentPrice <= 0) {
+            return;
+        }
 
-        if (!selectedAsset || !buyQuote || !Number.isFinite(quantity) || quantity <= 0) {
+        const proceeds = currentPrice * requestedQuantity;
+        const remainingQuantity = lot.quantity - requestedQuantity;
+
+        const nextClosedTrade: ClosedTrade = {
+            id: cryptoRandomId(),
+            ticker: lot.ticker,
+            quantity: requestedQuantity,
+            purchasePrice: lot.purchasePrice,
+            sellPrice: currentPrice,
+            currency: lot.currency,
+            purchasedAt: lot.purchasedAt,
+            soldAt: new Date().toISOString()
+        };
+
+        setPortfolioState((current) => {
+            const nextLots = current.lots.flatMap((currentLot) => {
+                if (currentLot.id !== lot.id) {
+                    return [currentLot];
+                }
+
+                if (remainingQuantity <= 0) {
+                    return [];
+                }
+
+                return [
+                    {
+                        ...currentLot,
+                        quantity: remainingQuantity
+                    }
+                ];
+            });
+
             return {
-                total: 0,
-                afterBalance: 0
+                ...current,
+                balances: {
+                    ...current.balances,
+                    [lot.currency]: current.balances[lot.currency] + proceeds
+                },
+                lots: nextLots,
+                closedTrades: [nextClosedTrade, ...current.closedTrades]
             };
-        }
+        });
 
-        const total = quantity * buyQuote.price;
-        const currentBalance =
-            selectedAsset.currency === "RUB"
-                ? simulator?.account.rubBalance ?? 0
-                : simulator?.account.usdBalance ?? 0;
-
-        return {
-            total,
-            afterBalance: currentBalance - total
-        };
-    }, [buyQuantity, buyQuote, selectedAsset, simulator?.account.rubBalance, simulator?.account.usdBalance]);
-
-    const realizedStats = useMemo(() => {
-        const rubTrades = closedTrades.filter((trade) => trade.currency === "RUB");
-        const usdTrades = closedTrades.filter((trade) => trade.currency === "USD");
-
-        const bestTrade =
-            closedTrades.length === 0
-                ? null
-                : [...closedTrades].sort(
-                    (first, second) =>
-                        second.realizedProfitLossPercent - first.realizedProfitLossPercent
-                )[0];
-
-        const worstTrade =
-            closedTrades.length === 0
-                ? null
-                : [...closedTrades].sort(
-                    (first, second) =>
-                        first.realizedProfitLossPercent - second.realizedProfitLossPercent
-                )[0];
-
-        return {
-            rubRealized: rubTrades.reduce((sum, trade) => sum + trade.realizedProfitLoss, 0),
-            usdRealized: usdTrades.reduce((sum, trade) => sum + trade.realizedProfitLoss, 0),
-            bestTrade,
-            worstTrade
-        };
-    }, [closedTrades]);
-
-    const recentTransactions = useMemo(() => {
-        if (!simulator) {
-            return [];
-        }
-
-        return simulator.transactions.slice(0, 8);
-    }, [simulator]);
-
-    const bestTradeSummary = realizedStats.bestTrade
-        ? `${realizedStats.bestTrade.ticker} · ${formatPercent(realizedStats.bestTrade.realizedProfitLossPercent)}`
-        : "—";
-
-    const worstTradeSummary = realizedStats.worstTrade
-        ? `${realizedStats.worstTrade.ticker} · ${formatPercent(realizedStats.worstTrade.realizedProfitLossPercent)}`
-        : "—";
-
-    if (isLoading || !simulator) {
-        return <LoadingBlock text="Загружаем портфель..." />;
+        setSellQuantities((current) => {
+            const nextState = { ...current };
+            delete nextState[lot.id];
+            return nextState;
+        });
     }
 
     return (
         <section className="page portfolio-page">
-            <div className="page-header">
-                <div>
-                    <p className="eyebrow">Портфель</p>
-                    <h1>Симулятор инвестиций</h1>
+            <div className="compact-portfolio-account panel">
+                <div className="compact-portfolio-account-grid">
+                    <div className="compact-portfolio-balance-card">
+                        <span>RUB счёт</span>
+                        <strong>{formatMoney(portfolioState.balances.RUB, "RUB")}</strong>
+                    </div>
+
+                    <div className="compact-portfolio-balance-card">
+                        <span>USD счёт</span>
+                        <strong>{formatMoney(portfolioState.balances.USD, "USD")}</strong>
+                    </div>
                 </div>
 
-                <div className="hero-actions">
-                    <button type="button" className="ghost-button" onClick={handleSeedDemo}>
-                        Демо-данные
-                    </button>
-
-                    <button type="button" className="ghost-button danger-button" onClick={handleReset}>
-                        Сбросить
+                <div className="compact-portfolio-toggle-buttons">
+                    <button
+                        type="button"
+                        className={expandedPanel === "BUY" ? "primary-button" : "ghost-button"}
+                        onClick={() => handleTogglePanel("BUY")}
+                    >
+                        Покупка
                     </button>
 
                     <button
                         type="button"
-                        className="primary-button"
-                        disabled={isGeneratingReport}
-                        onClick={handleGenerateReport}
+                        className={expandedPanel === "BALANCE" ? "primary-button" : "ghost-button"}
+                        onClick={() => handleTogglePanel("BALANCE")}
                     >
-                        {isGeneratingReport ? "Анализируем..." : "AI-отчёт"}
+                        Изменить баланс
                     </button>
                 </div>
-            </div>
 
-            {error && <div className="error-block">{error}</div>}
-
-            <div className="portfolio-top-grid compact-portfolio-top-grid">
-                <article className="panel portfolio-account-panel compact-panel">
-                    <div className="panel-header compact-panel-header">
-                        <div>
-                            <h2>Счёт</h2>
-                        </div>
-                    </div>
-
-                    <div className="portfolio-account-grid compact-account-grid">
-                        <AccountCard label="RUB" value={formatMoney(simulator.account.rubBalance, "RUB")} />
-                        <AccountCard label="USD" value={formatMoney(simulator.account.usdBalance, "USD")} />
-
-                        <form className="portfolio-account-form compact-form-grid" onSubmit={handleSaveAccount}>
+                {expandedPanel === "BUY" && (
+                    <div className="compact-portfolio-inline-panel">
+                        <div className="compact-inline-grid">
                             <label>
-                                <span>RUB баланс</span>
-                                <input
-                                    value={rubBalance}
-                                    type="number"
-                                    min="0"
-                                    step="0.0001"
-                                    onChange={(event) => setRubBalance(event.target.value)}
-                                />
+                                <span>Актив</span>
+                                <select
+                                    value={buyTicker}
+                                    onChange={(event) => setBuyTicker(event.target.value)}
+                                >
+                                    {assets.map((asset) => (
+                                        <option key={asset.id} value={asset.ticker}>
+                                            {asset.ticker} — {asset.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </label>
 
                             <label>
-                                <span>USD баланс</span>
+                                <span>Кол-во</span>
                                 <input
-                                    value={usdBalance}
                                     type="number"
                                     min="0"
                                     step="0.0001"
-                                    onChange={(event) => setUsdBalance(event.target.value)}
+                                    value={buyQuantity}
+                                    onChange={(event) => setBuyQuantity(event.target.value)}
                                 />
                             </label>
-
-                            <button type="submit" className="primary-button">
-                                Сохранить
-                            </button>
-                        </form>
-                    </div>
-                </article>
-
-                <article className="panel portfolio-buy-panel compact-panel">
-                    <div className="panel-header compact-panel-header">
-                        <div>
-                            <h2>Покупка</h2>
                         </div>
-                    </div>
 
-                    <form className="portfolio-buy-form compact-form-grid" onSubmit={handleBuy}>
-                        <label>
-                            <span>Актив</span>
-                            <select
-                                value={buyTicker}
-                                onChange={(event) => setBuyTicker(event.target.value)}
-                            >
-                                {assets.map((asset) => (
-                                    <option key={asset.id} value={asset.ticker}>
-                                        {asset.ticker} — {asset.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </label>
+                        <div className="compact-buy-preview-row">
+                            <div>
+                                <span>Цена</span>
+                                <strong>{selectedBuyAsset ? formatMoney(buyCurrentPrice, buyCurrency) : "—"}</strong>
+                            </div>
 
-                        <label>
-                            <span>Количество</span>
-                            <input
-                                value={buyQuantity}
-                                type="number"
-                                min="0"
-                                step="0.0001"
-                                onChange={(event) => setBuyQuantity(event.target.value)}
-                            />
-                        </label>
+                            <div>
+                                <span>Потратишь</span>
+                                <strong>{selectedBuyAsset ? formatMoney(buyTotalCost, buyCurrency) : "—"}</strong>
+                            </div>
 
-                        <button type="submit" className="primary-button">
+                            <div>
+                                <span>После покупки</span>
+                                <strong>{selectedBuyAsset ? formatMoney(buyBalanceAfter, buyCurrency) : "—"}</strong>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            className="primary-button"
+                            onClick={handleBuy}
+                            disabled={
+                                !selectedBuyAsset ||
+                                buyQuantityNumber <= 0 ||
+                                buyCurrentPrice <= 0 ||
+                                buyBalanceAfter < 0
+                            }
+                        >
                             Купить
                         </button>
+                    </div>
+                )}
 
-                        <div className="portfolio-buy-calculator compact-calculator-grid">
-                            <CalculatorMetric
-                                label="Цена"
-                                value={buyQuote && selectedAsset ? formatMoney(buyQuote.price, selectedAsset.currency) : "—"}
-                            />
-                            <CalculatorMetric
-                                label="Потратишь"
-                                value={selectedAsset ? formatMoney(buyCalculator.total, selectedAsset.currency) : "—"}
-                            />
-                            <CalculatorMetric
-                                label="После покупки"
-                                value={selectedAsset ? formatMoney(buyCalculator.afterBalance, selectedAsset.currency) : "—"}
-                                className={buyCalculator.afterBalance >= 0 ? "positive-value" : "negative-value"}
-                            />
+                {expandedPanel === "BALANCE" && (
+                    <div className="compact-portfolio-inline-panel">
+                        <div className="compact-inline-grid">
+                            <label>
+                                <span>Валюта</span>
+                                <select
+                                    value={balanceCurrency}
+                                    onChange={(event) => setBalanceCurrency(event.target.value as Currency)}
+                                >
+                                    <option value="RUB">RUB</option>
+                                    <option value="USD">USD</option>
+                                </select>
+                            </label>
+
+                            <label>
+                                <span>Новый баланс</span>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={balanceValue}
+                                    onChange={(event) => setBalanceValue(event.target.value)}
+                                />
+                            </label>
                         </div>
-                    </form>
-                </article>
+
+                        <button type="button" className="primary-button" onClick={handleSetBalance}>
+                            Сохранить
+                        </button>
+                    </div>
+                )}
             </div>
 
-            <article className="panel compact-panel">
-                <div className="panel-header compact-panel-header">
+            <article className="panel compact-holdings-panel">
+                <div className="panel-header">
                     <div>
                         <h2>Активы и лоты</h2>
                     </div>
                 </div>
 
-                {simulator.holdings.length === 0 ? (
-                    <div className="empty-state">Портфель пустой</div>
+                {isPriceLoading && groupedHoldings.length === 0 ? (
+                    <div className="empty-state">Загружаем портфель...</div>
+                ) : groupedHoldings.length === 0 ? (
+                    <div className="empty-state">Пока нет купленных активов</div>
                 ) : (
-                    <div className="portfolio-simulator-holdings compact-holdings">
-                        {simulator.holdings.map((holding) => (
-                            <div className="portfolio-holding-group portfolio-holding-scroll" key={holding.assetId}>
-                                <div className="portfolio-line portfolio-holding-line compact-portfolio-line">
-                                    <div className="portfolio-line-title">
-                                        <strong>{formatNumber(holding.totalQuantity)} {holding.ticker}</strong>
-                                        <span>{holding.name}</span>
+                    <div className="compact-holdings-list">
+                        {groupedHoldings.map((group) => {
+                            const isExpanded = Boolean(expandedHoldings[group.ticker]);
+
+                            return (
+                                <div className="compact-holding-card" key={group.ticker}>
+                                    <div className="compact-holding-line">
+                                        <Link to={`/assets/${group.ticker}`} className="compact-holding-main">
+                                            <strong>
+                                                {formatQuantity(group.quantity)} {group.ticker}
+                                            </strong>
+                                        </Link>
+
+                                        <div className="compact-holding-metric">
+                                            <span>Сейчас</span>
+                                            <strong>{formatMoney(group.currentPrice, group.currency)}</strong>
+                                        </div>
+
+                                        <div className="compact-holding-metric">
+                                            <span>Вложено</span>
+                                            <strong>{formatMoney(group.totalInvested, group.currency)}</strong>
+                                        </div>
+
+                                        <div className="compact-holding-metric">
+                                            <span>Стоимость</span>
+                                            <strong>{formatMoney(group.currentValue, group.currency)}</strong>
+                                        </div>
+
+                                        <div className="compact-holding-metric">
+                                            <span>PNL</span>
+                                            <strong className={group.pnl >= 0 ? "positive-value" : "negative-value"}>
+                                                {formatMoney(group.pnl, group.currency)} · {formatPercentWithSign(group.pnlPercent)}
+                                            </strong>
+                                        </div>
                                     </div>
 
-                                    <div className="portfolio-line-metrics compact-portfolio-metrics">
-                                        <InlineMetric label="Средняя" value={formatMoney(holding.averageBuyPrice, holding.currency)} />
-                                        <InlineMetric label="Сейчас" value={formatMoney(holding.currentPrice, holding.currency)} />
-                                        <InlineMetric label="Вложено" value={formatMoney(holding.investedAmount, holding.currency)} />
-                                        <InlineMetric label="Стоимость" value={formatMoney(holding.currentValue, holding.currency)} />
-                                        <InlineMetric
-                                            label="PnL"
-                                            value={`${formatMoney(holding.profitLoss, holding.currency)} · ${formatPercent(holding.profitLossPercent)}`}
-                                            className={holding.profitLoss >= 0 ? "positive-value" : "negative-value"}
-                                        />
-                                        <InlineMetric label="Источник" value={holding.currentPriceSource} />
-                                    </div>
-
-                                    <div className="portfolio-line-actions compact-portfolio-actions">
-                                        <button
-                                            type="button"
-                                            className="ghost-button"
-                                            onClick={() => setBuyTicker(holding.ticker)}
-                                        >
-                                            Купить
-                                        </button>
-
+                                    <div className="compact-holding-actions">
                                         <button
                                             type="button"
                                             className="primary-button"
-                                            onClick={() =>
-                                                setExpandedTickers((current) => ({
+                                            onClick={() => {
+                                                setExpandedHoldings((current) => ({
                                                     ...current,
-                                                    [holding.ticker]: !current[holding.ticker]
-                                                }))
-                                            }
+                                                    [group.ticker]: !current[group.ticker]
+                                                }));
+                                            }}
                                         >
-                                            {expandedTickers[holding.ticker] ? "Свернуть" : "Развернуть"}
+                                            {isExpanded ? "Свернуть" : "Развернуть"}
                                         </button>
                                     </div>
-                                </div>
 
-                                {expandedTickers[holding.ticker] && (
-                                    <div className="portfolio-lot-list compact-lot-list">
-                                        {holding.lots.map((lot) => {
-                                            const sellQuantity = Number(sellQuantities[lot.id] ?? 0);
-                                            const sellAmount =
-                                                Number.isFinite(sellQuantity) && sellQuantity > 0
-                                                    ? sellQuantity * lot.currentPrice
-                                                    : 0;
+                                    {isExpanded && (
+                                        <div className="compact-lot-list">
+                                            {group.lots.map((lot) => {
+                                                const currentPrice = prices[lot.ticker] ?? 0;
+                                                const invested = lot.quantity * lot.purchasePrice;
+                                                const currentValue = lot.quantity * currentPrice;
+                                                const pnl = currentValue - invested;
+                                                const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
 
-                                            return (
-                                                <div className="portfolio-holding-scroll" key={lot.id}>
-                                                    <div className="portfolio-line portfolio-lot-line compact-portfolio-line">
-                                                        <div className="portfolio-line-title">
-                                                            <strong>
-                                                                {formatNumber(lot.remainingQuantity)} {lot.ticker} {formatDateTime(lot.openedAt)}
-                                                            </strong>
+                                                return (
+                                                    <div className="compact-lot-card" key={lot.id}>
+                                                        <div className="compact-holding-line compact-lot-line">
+                                                            <div className="compact-holding-main">
+                                                                <strong>
+                                                                    {formatQuantity(lot.quantity)} {lot.ticker} {formatDateTime(lot.purchasedAt)}
+                                                                </strong>
+                                                            </div>
+
+                                                            <div className="compact-holding-metric">
+                                                                <span>Сейчас</span>
+                                                                <strong>{formatMoney(currentPrice, lot.currency)}</strong>
+                                                            </div>
+
+                                                            <div className="compact-holding-metric">
+                                                                <span>Вложено</span>
+                                                                <strong>{formatMoney(invested, lot.currency)}</strong>
+                                                            </div>
+
+                                                            <div className="compact-holding-metric">
+                                                                <span>Стоимость</span>
+                                                                <strong>{formatMoney(currentValue, lot.currency)}</strong>
+                                                            </div>
+
+                                                            <div className="compact-holding-metric">
+                                                                <span>PNL</span>
+                                                                <strong className={pnl >= 0 ? "positive-value" : "negative-value"}>
+                                                                    {formatMoney(pnl, lot.currency)} · {formatPercentWithSign(pnlPercent)}
+                                                                </strong>
+                                                            </div>
                                                         </div>
 
-                                                        <div className="portfolio-line-metrics compact-portfolio-metrics">
-                                                            <InlineMetric label="Покупка" value={formatMoney(lot.buyPrice, lot.currency)} />
-                                                            <InlineMetric label="Сейчас" value={formatMoney(lot.currentPrice, lot.currency)} />
-                                                            <InlineMetric label="Вложено" value={formatMoney(lot.investedAmount, lot.currency)} />
-                                                            <InlineMetric label="Стоимость" value={formatMoney(lot.currentValue, lot.currency)} />
-                                                            <InlineMetric
-                                                                label="PnL"
-                                                                value={`${formatMoney(lot.profitLoss, lot.currency)} · ${formatPercent(lot.profitLossPercent)}`}
-                                                                className={lot.profitLoss >= 0 ? "positive-value" : "negative-value"}
-                                                            />
-                                                            <InlineMetric label="Получишь" value={formatMoney(sellAmount, lot.currency)} />
-                                                        </div>
-
-                                                        <div className="portfolio-line-actions compact-portfolio-actions compact-sell-actions">
+                                                        <div className="compact-holding-actions">
                                                             <input
                                                                 type="number"
                                                                 min="0"
-                                                                max={lot.remainingQuantity}
+                                                                max={lot.quantity}
                                                                 step="0.0001"
-                                                                value={sellQuantities[lot.id] ?? ""}
                                                                 placeholder="Кол-во"
-                                                                onChange={(event) =>
+                                                                value={sellQuantities[lot.id] ?? ""}
+                                                                onChange={(event) => {
                                                                     setSellQuantities((current) => ({
                                                                         ...current,
                                                                         [lot.id]: event.target.value
-                                                                    }))
-                                                                }
+                                                                    }));
+                                                                }}
                                                             />
 
                                                             <button
                                                                 type="button"
-                                                                className="ghost-button danger-button"
+                                                                className="ghost-button"
                                                                 onClick={() => handleSell(lot)}
                                                             >
                                                                 Продать
                                                             </button>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        ))}
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
             </article>
 
-            {report && (
-                <AiReportPanel
-                    title="AI-анализ портфеля"
-                    report={report}
-                />
-            )}
-
-            <details className="panel compact-disclosure">
-                <summary className="compact-disclosure-summary">
+            <details className="panel compact-portfolio-details">
+                <summary>
                     <div>
                         <h2>Статистика</h2>
                         <span>
-                            Активов {simulator.assetsCount} · Лотов {simulator.lotsCount}
+                            Активов {statistics.assetsCount} · Лотов {statistics.lotsCount}
                         </span>
                     </div>
                 </summary>
 
-                <div className="compact-disclosure-body">
-                    <div className="summary-grid portfolio-summary-grid compact-summary-grid">
-                        <Summary label="Активов" value={String(simulator.assetsCount)} />
-                        <Summary label="Лотов" value={String(simulator.lotsCount)} />
-                        <Summary
-                            label="RUB Unrealized"
-                            value={formatMoney(simulator.totalRubProfitLoss, "RUB")}
-                            className={simulator.totalRubProfitLoss >= 0 ? "positive-value" : "negative-value"}
-                        />
-                        <Summary
-                            label="USD Unrealized"
-                            value={formatMoney(simulator.totalUsdProfitLoss, "USD")}
-                            className={simulator.totalUsdProfitLoss >= 0 ? "positive-value" : "negative-value"}
-                        />
-                        <Summary
-                            label="RUB Realized"
-                            value={formatMoney(realizedStats.rubRealized, "RUB")}
-                            className={realizedStats.rubRealized >= 0 ? "positive-value" : "negative-value"}
-                        />
-                        <Summary
-                            label="USD Realized"
-                            value={formatMoney(realizedStats.usdRealized, "USD")}
-                            className={realizedStats.usdRealized >= 0 ? "positive-value" : "negative-value"}
-                        />
-                        <Summary label="Лучший трейд" value={bestTradeSummary} />
-                        <Summary label="Худший трейд" value={worstTradeSummary} />
+                <div className="compact-portfolio-stats-grid">
+                    <div className="compact-portfolio-stat">
+                        <span>Активов</span>
+                        <strong>{statistics.assetsCount}</strong>
+                    </div>
+
+                    <div className="compact-portfolio-stat">
+                        <span>Лотов</span>
+                        <strong>{statistics.lotsCount}</strong>
+                    </div>
+
+                    <div className="compact-portfolio-stat">
+                        <span>Unrealized</span>
+                        <strong className={statistics.unrealized >= 0 ? "positive-value" : "negative-value"}>
+                            {formatMoney(statistics.unrealized, detectMainCurrency(groupedHoldings))}
+                        </strong>
+                    </div>
+
+                    <div className="compact-portfolio-stat">
+                        <span>Realized</span>
+                        <strong className={statistics.realized >= 0 ? "positive-value" : "negative-value"}>
+                            {formatMoney(statistics.realized, detectMainCurrency(groupedHoldings))}
+                        </strong>
                     </div>
                 </div>
             </details>
 
-            <details className="panel compact-disclosure">
-                <summary className="compact-disclosure-summary">
+            <details className="panel compact-portfolio-details">
+                <summary>
                     <div>
                         <h2>Закрытые сделки</h2>
-                        <span>{closedTrades.length}</span>
+                        <span>{portfolioState.closedTrades.length}</span>
                     </div>
                 </summary>
 
-                <div className="compact-disclosure-body">
-                    {closedTrades.length === 0 ? (
-                        <div className="empty-state">Закрытых сделок нет</div>
-                    ) : (
-                        <div className="closed-trade-list compact-secondary-list">
-                            {closedTrades.slice(0, 8).map((trade) => (
-                                <ClosedTradeCard key={trade.id} trade={trade} />
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </details>
+                {portfolioState.closedTrades.length === 0 ? (
+                    <div className="empty-state">Закрытых сделок пока нет</div>
+                ) : (
+                    <div className="compact-closed-trades-list">
+                        {portfolioState.closedTrades.map((trade) => {
+                            const pnl = (trade.sellPrice - trade.purchasePrice) * trade.quantity;
+                            const invested = trade.purchasePrice * trade.quantity;
+                            const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
 
-            <details className="panel compact-disclosure">
-                <summary className="compact-disclosure-summary">
-                    <div>
-                        <h2>История операций</h2>
-                        <span>{recentTransactions.length}</span>
+                            return (
+                                <div className="compact-closed-trade-line" key={trade.id}>
+                                    <strong>
+                                        {formatQuantity(trade.quantity)} {trade.ticker}
+                                    </strong>
+
+                                    <span>{formatDateTime(trade.soldAt)}</span>
+
+                                    <span>{formatMoney(trade.sellPrice, trade.currency)}</span>
+
+                                    <em className={pnl >= 0 ? "positive-value" : "negative-value"}>
+                                        {formatMoney(pnl, trade.currency)} · {formatPercentWithSign(pnlPercent)}
+                                    </em>
+                                </div>
+                            );
+                        })}
                     </div>
-                </summary>
-
-                <div className="compact-disclosure-body">
-                    {recentTransactions.length === 0 ? (
-                        <div className="empty-state">Операций пока нет</div>
-                    ) : (
-                        <div className="portfolio-transaction-list compact-secondary-list">
-                            {recentTransactions.map((transaction) => (
-                                <TransactionCard key={transaction.id} transaction={transaction} />
-                            ))}
-                        </div>
-                    )}
-                </div>
+                )}
             </details>
         </section>
     );
 }
 
-type AccountCardProps = {
-    label: string;
-    value: string;
-};
+function loadPortfolioState(): PersistedPortfolioState {
+    for (const key of LEGACY_STORAGE_KEYS) {
+        const rawValue = window.localStorage.getItem(key);
 
-function AccountCard({ label, value }: AccountCardProps) {
-    return (
-        <div className="portfolio-account-card compact-small-card">
-            <span>{label}</span>
-            <strong>{value}</strong>
-        </div>
-    );
+        if (!rawValue) {
+            continue;
+        }
+
+        try {
+            const parsed = JSON.parse(rawValue);
+            return normalizePersistedState(parsed);
+        } catch {
+            continue;
+        }
+    }
+
+    return {
+        balances: {
+            RUB: 0,
+            USD: 0
+        },
+        lots: [],
+        closedTrades: []
+    };
 }
 
-type SummaryProps = {
-    label: string;
-    value: string;
-    className?: string;
-};
+function normalizePersistedState(value: unknown): PersistedPortfolioState {
+    const source = (typeof value === "object" && value !== null ? value : {}) as Record<string, unknown>;
 
-function Summary({ label, value, className }: SummaryProps) {
-    return (
-        <div className="summary-card compact-small-card">
-            <span>{label}</span>
-            <strong className={className}>{value}</strong>
-        </div>
-    );
+    const balancesSource = (source.balances ??
+        source.account ??
+        {}) as Record<string, unknown>;
+
+    const lotsSource = (source.lots ??
+        source.openLots ??
+        source.portfolioLots ??
+        []) as unknown[];
+
+    const closedTradesSource = (source.closedTrades ??
+        source.closed ??
+        source.history ??
+        []) as unknown[];
+
+    return {
+        balances: {
+            RUB: toNumber(balancesSource.RUB ?? balancesSource.rub ?? balancesSource.rubBalance),
+            USD: toNumber(balancesSource.USD ?? balancesSource.usd ?? balancesSource.usdBalance)
+        },
+        lots: lotsSource
+            .map(normalizeLot)
+            .filter((item): item is PortfolioLot => Boolean(item)),
+        closedTrades: closedTradesSource
+            .map(normalizeClosedTrade)
+            .filter((item): item is ClosedTrade => Boolean(item))
+    };
 }
 
-type InlineMetricProps = {
-    label: string;
-    value: string;
-    className?: string;
-};
+function normalizeLot(value: unknown): PortfolioLot | null {
+    if (typeof value !== "object" || value === null) {
+        return null;
+    }
 
-function InlineMetric({ label, value, className }: InlineMetricProps) {
-    return (
-        <div className="portfolio-inline-metric">
-            <span>{label}</span>
-            <strong className={className}>{value}</strong>
-        </div>
-    );
+    const source = value as Record<string, unknown>;
+    const ticker = String(source.ticker ?? "");
+
+    if (!ticker) {
+        return null;
+    }
+
+    return {
+        id: String(source.id ?? cryptoRandomId()),
+        ticker,
+        quantity: toNumber(source.quantity),
+        purchasePrice: toNumber(source.purchasePrice ?? source.buyPrice ?? source.price),
+        currency: String(source.currency ?? "RUB").toUpperCase() === "USD" ? "USD" : "RUB",
+        purchasedAt: String(source.purchasedAt ?? source.createdAt ?? new Date().toISOString())
+    };
 }
 
-type CalculatorMetricProps = {
-    label: string;
-    value: string;
-    className?: string;
-};
+function normalizeClosedTrade(value: unknown): ClosedTrade | null {
+    if (typeof value !== "object" || value === null) {
+        return null;
+    }
 
-function CalculatorMetric({ label, value, className }: CalculatorMetricProps) {
-    return (
-        <div className="portfolio-calculator-metric compact-small-card">
-            <span>{label}</span>
-            <strong className={className}>{value}</strong>
-        </div>
-    );
+    const source = value as Record<string, unknown>;
+    const ticker = String(source.ticker ?? "");
+
+    if (!ticker) {
+        return null;
+    }
+
+    return {
+        id: String(source.id ?? cryptoRandomId()),
+        ticker,
+        quantity: toNumber(source.quantity),
+        purchasePrice: toNumber(source.purchasePrice ?? source.buyPrice),
+        sellPrice: toNumber(source.sellPrice ?? source.price),
+        currency: String(source.currency ?? "RUB").toUpperCase() === "USD" ? "USD" : "RUB",
+        purchasedAt: String(source.purchasedAt ?? source.createdAt ?? new Date().toISOString()),
+        soldAt: String(source.soldAt ?? source.closedAt ?? new Date().toISOString())
+    };
 }
 
-type ClosedTradeCardProps = {
-    trade: ClosedTrade;
-};
-
-function ClosedTradeCard({ trade }: ClosedTradeCardProps) {
-    return (
-        <div className="closed-trade-card compact-secondary-card">
-            <strong>{trade.ticker}</strong>
-            <InlineMetric label="Кол-во" value={formatNumber(trade.quantity)} />
-            <InlineMetric label="Вход" value={formatMoney(trade.buyPrice, trade.currency)} />
-            <InlineMetric label="Выход" value={formatMoney(trade.sellPrice, trade.currency)} />
-            <InlineMetric
-                label="PnL"
-                value={`${formatMoney(trade.realizedProfitLoss, trade.currency)} · ${formatPercent(trade.realizedProfitLossPercent)}`}
-                className={trade.realizedProfitLoss >= 0 ? "positive-value" : "negative-value"}
-            />
-            <InlineMetric label="Дата" value={formatDateTime(trade.closedAt)} />
-        </div>
-    );
+function savePortfolioState(value: PersistedPortfolioState) {
+    window.localStorage.setItem(PORTFOLIO_STORAGE_KEY, JSON.stringify(value));
 }
 
-type TransactionCardProps = {
-    transaction: PortfolioTransaction;
-};
-
-function TransactionCard({ transaction }: TransactionCardProps) {
-    return (
-        <div className="portfolio-transaction-card compact-secondary-card">
-            <span className={transaction.transactionType === "BUY" ? "transaction-buy portfolio-transaction-type" : "transaction-sell portfolio-transaction-type"}>
-                {transaction.transactionType === "BUY" ? "Покупка" : "Продажа"}
-            </span>
-
-            <strong>{transaction.ticker}</strong>
-            <InlineMetric label="Кол-во" value={formatNumber(transaction.quantity)} />
-            <InlineMetric label="Цена" value={formatMoney(transaction.price, transaction.currency)} />
-            <InlineMetric label="Сумма" value={formatMoney(transaction.totalAmount, transaction.currency)} />
-            <InlineMetric label="Дата" value={formatDateTime(transaction.executedAt)} />
-        </div>
-    );
+function parsePositiveNumber(value: string): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 }
 
-function formatNumber(value: number): string {
-    return new Intl.NumberFormat("ru-RU", {
-        maximumFractionDigits: 8
-    }).format(value);
+function toNumber(value: unknown): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function detectMainCurrency(groups: GroupedHolding[]): Currency {
+    const usdValue = groups
+        .filter((group) => group.currency === "USD")
+        .reduce((sum, group) => sum + group.currentValue, 0);
+
+    const rubValue = groups
+        .filter((group) => group.currency === "RUB")
+        .reduce((sum, group) => sum + group.currentValue, 0);
+
+    return usdValue > rubValue ? "USD" : "RUB";
+}
+
+function cryptoRandomId(): string {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function formatMoney(value: number, currency: string): string {
     return `${new Intl.NumberFormat("ru-RU", {
-        maximumFractionDigits: 4
+        maximumFractionDigits: currency === "USD" ? 4 : 2
     }).format(value)} ${currency}`;
 }
 
-function formatPercent(value: number): string {
-    return `${new Intl.NumberFormat("ru-RU", {
+function formatQuantity(value: number): string {
+    return new Intl.NumberFormat("ru-RU", {
+        maximumFractionDigits: 4
+    }).format(value);
+}
+
+function formatPercentWithSign(value: number): string {
+    return `${value >= 0 ? "+" : ""}${new Intl.NumberFormat("ru-RU", {
         maximumFractionDigits: 2
     }).format(value)}%`;
 }
 
 function formatDateTime(value: string): string {
-    const date = new Date(value);
-
-    return `${date.toLocaleDateString("ru-RU")} ${date.toLocaleTimeString("ru-RU", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit"
-    })}`;
+    return new Date(value).toLocaleString("ru-RU");
 }
