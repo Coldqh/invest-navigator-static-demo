@@ -6,6 +6,7 @@ export const YANDEX_GPT_CONFIG = {
         import.meta.env.VITE_YANDEX_GPT_MODEL ??
         "gpt://b1g9sq89lelk86ji7gol/yandexgpt-lite/latest",
     completionUrl: "https://llm.api.cloud.yandex.net/foundationModels/v1/completion",
+    proxyUrl: import.meta.env.VITE_YANDEX_GPT_PROXY_URL ?? "",
     temperature: 0.25,
     maxTokens: 900
 };

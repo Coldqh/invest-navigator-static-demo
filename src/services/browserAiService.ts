@@ -77,6 +77,56 @@ export async function generatePortfolioReport(portfolio: PortfolioSimulator): Pr
 }
 
 async function requestYandexGpt(prompt: string): Promise<string> {
+    if (YANDEX_GPT_CONFIG.proxyUrl.trim()) {
+        return requestYandexGptViaProxy(prompt);
+    }
+
+    return requestYandexGptDirect(prompt);
+}
+
+async function requestYandexGptViaProxy(prompt: string): Promise<string> {
+    const response = await fetch(YANDEX_GPT_CONFIG.proxyUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            prompt,
+            modelUri: YANDEX_GPT_CONFIG.modelUri,
+            temperature: 0.18,
+            maxTokens: Math.max(YANDEX_GPT_CONFIG.maxTokens, 900)
+        })
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text().catch(() => "");
+
+        throw new Error(
+            `YandexGPT proxy не ответил: ${response.status}. ${errorText.slice(0, 240)}`
+        );
+    }
+
+    const data = await response.json() as {
+        text?: string;
+        result?: {
+            alternatives?: Array<{
+                message?: {
+                    text?: string;
+                };
+            }>;
+        };
+    };
+
+    const text = data.text ?? data.result?.alternatives?.[0]?.message?.text;
+
+    if (!text) {
+        throw new Error("YandexGPT proxy вернул пустой ответ.");
+    }
+
+    return text;
+}
+
+async function requestYandexGptDirect(prompt: string): Promise<string> {
     if (!YANDEX_GPT_CONFIG.apiKey.trim()) {
         throw new Error(
             "YandexGPT API key не найден. Добавь GitHub secret VITE_YANDEX_GPT_API_KEY и перезапусти deploy."
@@ -95,40 +145,48 @@ async function requestYandexGpt(prompt: string): Promise<string> {
         );
     }
 
-    const response = await fetch(YANDEX_GPT_CONFIG.completionUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Api-Key ${YANDEX_GPT_CONFIG.apiKey}`,
-            "x-folder-id": YANDEX_GPT_CONFIG.folderId
-        },
-        body: JSON.stringify({
-            modelUri: YANDEX_GPT_CONFIG.modelUri,
-            completionOptions: {
-                stream: false,
-                temperature: 0.18,
-                maxTokens: Math.max(YANDEX_GPT_CONFIG.maxTokens, 900)
+    let response: Response;
+
+    try {
+        response = await fetch(YANDEX_GPT_CONFIG.completionUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Api-Key ${YANDEX_GPT_CONFIG.apiKey}`,
+                "x-folder-id": YANDEX_GPT_CONFIG.folderId
             },
-            messages: [
-                {
-                    role: "system",
-                    text: [
-                        "Ты аналитический движок в инвестиционном демо-приложении.",
-                        "Отвечай только валидным JSON без markdown.",
-                        "Стиль: коротко, жёстко, продуктово, без воды.",
-                        "Не давай команд купить или продать.",
-                        "Для отчёта по активу опирайся только на цену, изменение, волатильность, средний объём и свечи.",
-                        "Не используй биржу, источник данных, количество свечей, другие активы, базовый риск, backend, demo, API или техническую сторону сбора данных.",
-                        "Свежие новости не выдумывать."
-                    ].join(" ")
+            body: JSON.stringify({
+                modelUri: YANDEX_GPT_CONFIG.modelUri,
+                completionOptions: {
+                    stream: false,
+                    temperature: 0.18,
+                    maxTokens: Math.max(YANDEX_GPT_CONFIG.maxTokens, 900)
                 },
-                {
-                    role: "user",
-                    text: prompt
-                }
-            ]
-        })
-    });
+                messages: [
+                    {
+                        role: "system",
+                        text: [
+                            "Ты аналитический движок в инвестиционном демо-приложении.",
+                            "Отвечай только валидным JSON без markdown.",
+                            "Стиль: коротко, жёстко, продуктово, без воды.",
+                            "Не давай команд купить или продать.",
+                            "Для отчёта по активу опирайся только на цену, изменение, волатильность, средний объём и свечи.",
+                            "Не используй биржу, источник данных, количество свечей, другие активы, базовый риск, backend, demo, API или техническую сторону сбора данных.",
+                            "Свежие новости не выдумывать."
+                        ].join(" ")
+                    },
+                    {
+                        role: "user",
+                        text: prompt
+                    }
+                ]
+            })
+        });
+    } catch {
+        throw new Error(
+            "Прямой запрос к YandexGPT из GitHub Pages заблокирован браузером. Нужен proxy-url через VITE_YANDEX_GPT_PROXY_URL."
+        );
+    }
 
     if (!response.ok) {
         const errorText = await response.text().catch(() => "");

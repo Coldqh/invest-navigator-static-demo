@@ -517,6 +517,7 @@ export function PortfolioPage() {
                 <AiReportPanel
                     title="AI-анализ портфеля"
                     report={report}
+                    onClose={() => setReport(null)}
                 />
             )}
 
