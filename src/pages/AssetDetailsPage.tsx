@@ -175,28 +175,6 @@ export function AssetDetailsPage() {
         };
     }, [visibleCandles]);
 
-    const lineChartPoints = useMemo(() => {
-        if (visibleCandles.length === 0) {
-            return "";
-        }
-
-        const min = chartBounds.minLow;
-        const max = chartBounds.maxHigh;
-        const range = Math.max(max - min, 1);
-
-        return visibleCandles
-            .map((candle, index) => {
-                const x = visibleCandles.length === 1
-                    ? 500
-                    : (index / (visibleCandles.length - 1)) * 1000;
-
-                const y = 260 - ((candle.close - min) / range) * 220;
-
-                return `${x},${y}`;
-            })
-            .join(" ");
-    }, [chartBounds.maxHigh, chartBounds.minLow, visibleCandles]);
-
     const lineChartDots = useMemo<LineChartDot[]>(() => {
         if (visibleCandles.length === 0) {
             return [];
@@ -208,10 +186,10 @@ export function AssetDetailsPage() {
 
         return visibleCandles.map((candle, index) => {
             const x = visibleCandles.length === 1
-                ? 50
-                : (index / (visibleCandles.length - 1)) * 100;
+                ? 500
+                : (index / (visibleCandles.length - 1)) * 1000;
 
-            const y = 86.67 - ((candle.close - min) / range) * 73.33;
+            const y = 260 - ((candle.close - min) / range) * 220;
 
             return {
                 candle,
@@ -220,6 +198,10 @@ export function AssetDetailsPage() {
             };
         });
     }, [chartBounds.maxHigh, chartBounds.minLow, visibleCandles]);
+
+    const lineChartPoints = useMemo(() => {
+        return lineChartDots.map((dot) => `${dot.x},${dot.y}`).join(" ");
+    }, [lineChartDots]);
 
     if (!asset) {
         return (
@@ -407,23 +389,18 @@ export function AssetDetailsPage() {
                                         points={lineChartPoints}
                                         className="asset-line-chart-line"
                                     />
-                                </svg>
 
-                                <div className="asset-line-chart-points">
                                     {lineChartDots.map((dot) => (
-                                        <button
+                                        <circle
                                             key={dot.candle.timestamp}
-                                            type="button"
-                                            className="asset-line-chart-point"
-                                            style={{
-                                                left: `${dot.x}%`,
-                                                top: `${dot.y}%`
-                                            }}
+                                            className="asset-line-chart-dot"
+                                            cx={dot.x}
+                                            cy={dot.y}
+                                            r="3.8"
                                             onClick={() => setActiveChartCandle(dot.candle)}
-                                            aria-label={`Показать свечу ${formatDateTime(dot.candle.timestamp)}`}
                                         />
                                     ))}
-                                </div>
+                                </svg>
 
                                 <div className="asset-line-chart-labels">
                                     <span>{formatNumber(chartBounds.maxHigh)}</span>

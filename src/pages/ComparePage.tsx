@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
 import { getAnalyticsSummary } from "../services/marketDataService";
-import type { AnalyticsSummary, Asset } from "../types/domain";
+import type { AnalyticsSummary } from "../types/domain";
 
 type CompareMetric = {
     key: string;
@@ -117,22 +117,24 @@ export function ComparePage() {
 
     return (
         <section className="page compare-vs-page">
-            <div className="compare-vs-top">
-                <select
-                    value={leftTicker}
-                    onChange={(event) => setLeftTicker(event.target.value)}
-                    className="compare-vs-select"
-                >
-                    {assets.map((asset) => (
-                        <option key={asset.id} value={asset.ticker}>
-                            {asset.ticker} — {asset.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
+            <select
+                value={leftTicker}
+                onChange={(event) => setLeftTicker(event.target.value)}
+                className="compare-vs-select"
+            >
+                {assets.map((asset) => (
+                    <option key={asset.id} value={asset.ticker}>
+                        {asset.ticker} — {asset.name}
+                    </option>
+                ))}
+            </select>
 
-            <div className="compare-vs-middle">
-                <div className="compare-vs-badge">VS</div>
+            <article className="compare-vs-middle">
+                <div className="compare-vs-title-row">
+                    <strong>{leftTicker}</strong>
+                    <div className="compare-vs-badge">VS</div>
+                    <strong>{rightTicker}</strong>
+                </div>
 
                 <div className="compare-vs-metrics">
                     {metrics.map((metric) => {
@@ -165,13 +167,11 @@ export function ComparePage() {
                         );
                     })}
                 </div>
-            </div>
 
-            <div className="compare-vs-bottom">
                 <select
                     value={rightTicker}
                     onChange={(event) => setRightTicker(event.target.value)}
-                    className="compare-vs-select"
+                    className="compare-vs-select compare-vs-select-bottom"
                 >
                     {assets.map((asset) => (
                         <option key={asset.id} value={asset.ticker}>
@@ -179,7 +179,7 @@ export function ComparePage() {
                         </option>
                     ))}
                 </select>
-            </div>
+            </article>
         </section>
     );
 }

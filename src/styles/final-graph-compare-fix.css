@@ -1,0 +1,227 @@
+.asset-line-chart svg {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.asset-line-chart-dot {
+    fill: #38bdf8;
+    stroke: #020617;
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 7px rgba(56, 189, 248, 0.7));
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.asset-chart-fixed-tooltip {
+    z-index: 50;
+    pointer-events: auto;
+}
+
+.asset-chart-fixed-tooltip + * {
+    pointer-events: none;
+}
+
+.compare-vs-page {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    min-height: auto;
+}
+
+.compare-vs-select {
+    width: 100%;
+    min-height: 58px;
+    padding: 0 18px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 18px;
+    color: #f8fafc;
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 16rem),
+            linear-gradient(135deg, rgba(11, 30, 58, 0.96), rgba(3, 7, 28, 0.96));
+    font-size: 18px;
+    font-weight: 950;
+    outline: none;
+}
+
+.compare-vs-middle {
+    display: grid;
+    gap: 14px;
+    align-content: start;
+    min-height: 0;
+    padding: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.14);
+    border-radius: 22px;
+    background:
+            radial-gradient(circle at top left, rgba(56, 189, 248, 0.08), transparent 18rem),
+            linear-gradient(135deg, rgba(11, 30, 58, 0.94), rgba(3, 7, 28, 0.94));
+}
+
+.compare-vs-title-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+}
+
+.compare-vs-title-row strong {
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 30px;
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: -0.06em;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compare-vs-title-row strong:last-child {
+    text-align: right;
+}
+
+.compare-vs-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 66px;
+    min-height: 66px;
+    border: 1px solid rgba(56, 189, 248, 0.24);
+    border-radius: 999px;
+    color: #f8fafc;
+    background: radial-gradient(circle at center, rgba(56, 189, 248, 0.24), rgba(2, 6, 23, 0.96));
+    font-size: 24px;
+    font-weight: 950;
+    letter-spacing: 0.1em;
+}
+
+.compare-vs-metrics {
+    display: grid;
+    gap: 8px;
+}
+
+.compare-vs-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 10px;
+    min-height: 46px;
+    padding: 8px 12px;
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 14px;
+    background: rgba(2, 6, 23, 0.34);
+}
+
+.compare-vs-label {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 950;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.compare-vs-value {
+    overflow: hidden;
+    color: #f8fafc;
+    font-size: 18px;
+    font-weight: 950;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.compare-vs-left {
+    text-align: left;
+}
+
+.compare-vs-right {
+    text-align: right;
+}
+
+.metric-better {
+    color: #86efac;
+}
+
+.metric-worse {
+    color: #fca5a5;
+}
+
+.compare-vs-select-bottom {
+    margin-top: 0;
+}
+
+@media (max-width: 900px) {
+    .asset-line-chart-dot {
+        r: 3.2px;
+        stroke-width: 2.4px;
+        filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.68));
+    }
+
+    .asset-chart-fixed-tooltip {
+        left: 10px;
+        right: 10px;
+        top: 10px;
+        z-index: 60;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 10px;
+        max-width: none;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        background: rgba(2, 6, 23, 0.92);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .compare-vs-page {
+        min-height: 0 !important;
+        gap: 8px;
+    }
+
+    .compare-vs-select {
+        min-height: 46px;
+        padding: 0 14px;
+        border-radius: 14px;
+        font-size: 15px;
+    }
+
+    .compare-vs-middle {
+        gap: 10px;
+        padding: 10px;
+        border-radius: 16px;
+        min-height: 0 !important;
+    }
+
+    .compare-vs-title-row {
+        gap: 8px;
+    }
+
+    .compare-vs-title-row strong {
+        font-size: 24px;
+    }
+
+    .compare-vs-badge {
+        min-width: 48px;
+        min-height: 48px;
+        font-size: 18px;
+    }
+
+    .compare-vs-metrics {
+        gap: 6px;
+    }
+
+    .compare-vs-row {
+        min-height: 38px;
+        gap: 6px;
+        padding: 7px 9px;
+        border-radius: 12px;
+    }
+
+    .compare-vs-label {
+        font-size: 9px;
+        letter-spacing: 0.08em;
+    }
+
+    .compare-vs-value {
+        font-size: 12px;
+    }
+}

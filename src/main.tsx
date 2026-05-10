@@ -13,6 +13,7 @@ import "./styles/data.css";
 import "./styles/responsive.css";
 import "./styles/compact-layout.css";
 import "./styles/final-mobile-polish.css";
+import "./styles/final-graph-compare-fix.css";
 
 const rootElement = document.getElementById("root");
 
