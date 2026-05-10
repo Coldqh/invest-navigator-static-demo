@@ -43,10 +43,9 @@ export function AiReportPanel({ title, report, onClose }: AiReportPanelProps) {
                 </div>
             </div>
 
-            <div className="ai-report-grid">
+            <div className="ai-report-grid ai-report-grid-two">
                 <AiList title="Сильные стороны" items={report.positiveFactors} />
                 <AiList title="Слабые места" items={report.negativeFactors} />
-                <AiList title="Проверить" items={report.actionItems} />
             </div>
 
             <div className="ai-report-footer">

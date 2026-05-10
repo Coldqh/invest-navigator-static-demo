@@ -45,19 +45,15 @@ export async function generateAssetReport(
 ): Promise<AiReport> {
     const fallbackRiskScore = calculateAssetAiRiskScore(summary, candles);
 
-    if (YANDEX_GPT_CONFIG.enabled && YANDEX_GPT_CONFIG.apiKey) {
-        try {
-            const text = await requestYandexGpt(buildAssetPrompt(summary, candles, fallbackRiskScore));
-            const parsed = parseAiJson(text, fallbackRiskScore);
+    if (YANDEX_GPT_CONFIG.enabled) {
+        const text = await requestYandexGpt(buildAssetPrompt(summary, candles, fallbackRiskScore));
+        const parsed = parseAiJson(text, fallbackRiskScore);
 
-            return {
-                provider: "YANDEX_GPT",
-                ...parsed,
-                disclaimer: "Не инвестиционная рекомендация."
-            };
-        } catch {
-            return generateLocalAssetReport(summary, candles);
-        }
+        return {
+            provider: "YANDEX_GPT",
+            ...parsed,
+            disclaimer: "Не инвестиционная рекомендация."
+        };
     }
 
     return generateLocalAssetReport(summary, candles);
@@ -66,25 +62,39 @@ export async function generateAssetReport(
 export async function generatePortfolioReport(portfolio: PortfolioSimulator): Promise<AiReport> {
     const fallbackRiskScore = calculatePortfolioRiskScore(portfolio);
 
-    if (YANDEX_GPT_CONFIG.enabled && YANDEX_GPT_CONFIG.apiKey) {
-        try {
-            const text = await requestYandexGpt(buildPortfolioPrompt(portfolio));
-            const parsed = parseAiJson(text, fallbackRiskScore);
+    if (YANDEX_GPT_CONFIG.enabled) {
+        const text = await requestYandexGpt(buildPortfolioPrompt(portfolio, fallbackRiskScore));
+        const parsed = parseAiJson(text, fallbackRiskScore);
 
-            return {
-                provider: "YANDEX_GPT",
-                ...parsed,
-                disclaimer: "Не инвестиционная рекомендация."
-            };
-        } catch {
-            return generateLocalPortfolioReport(portfolio);
-        }
+        return {
+            provider: "YANDEX_GPT",
+            ...parsed,
+            disclaimer: "Не инвестиционная рекомендация."
+        };
     }
 
     return generateLocalPortfolioReport(portfolio);
 }
 
 async function requestYandexGpt(prompt: string): Promise<string> {
+    if (!YANDEX_GPT_CONFIG.apiKey.trim()) {
+        throw new Error(
+            "YandexGPT API key не найден. Добавь GitHub secret VITE_YANDEX_GPT_API_KEY и перезапусти deploy."
+        );
+    }
+
+    if (!YANDEX_GPT_CONFIG.folderId.trim()) {
+        throw new Error(
+            "YandexGPT folderId не найден. Добавь GitHub secret VITE_YANDEX_GPT_FOLDER_ID или проверь yandexGptConfig.ts."
+        );
+    }
+
+    if (!YANDEX_GPT_CONFIG.modelUri.trim()) {
+        throw new Error(
+            "YandexGPT modelUri не найден. Добавь GitHub secret VITE_YANDEX_GPT_MODEL или проверь yandexGptConfig.ts."
+        );
+    }
+
     const response = await fetch(YANDEX_GPT_CONFIG.completionUrl, {
         method: "POST",
         headers: {
@@ -107,9 +117,9 @@ async function requestYandexGpt(prompt: string): Promise<string> {
                         "Отвечай только валидным JSON без markdown.",
                         "Стиль: коротко, жёстко, продуктово, без воды.",
                         "Не давай команд купить или продать.",
-                        "Не используй биржу, источник данных, количество свечей, другие активы, базовый риск или внутренние модели риска, если они не переданы в пользовательских данных.",
                         "Для отчёта по активу опирайся только на цену, изменение, волатильность, средний объём и свечи.",
-                        "Можно использовать общий рыночный контекст из модели, но нельзя выдумывать свежие новости."
+                        "Не используй биржу, источник данных, количество свечей, другие активы, базовый риск, backend, demo, API или техническую сторону сбора данных.",
+                        "Свежие новости не выдумывать."
                     ].join(" ")
                 },
                 {
@@ -121,14 +131,18 @@ async function requestYandexGpt(prompt: string): Promise<string> {
     });
 
     if (!response.ok) {
-        throw new Error(`YandexGPT failed with status ${response.status}`);
+        const errorText = await response.text().catch(() => "");
+
+        throw new Error(
+            `YandexGPT не ответил: ${response.status}. ${errorText.slice(0, 240)}`
+        );
     }
 
     const data = await response.json() as YandexCompletionResponse;
     const text = data.result?.alternatives?.[0]?.message?.text;
 
     if (!text) {
-        throw new Error("YandexGPT returned empty text");
+        throw new Error("YandexGPT вернул пустой ответ.");
     }
 
     return text;
@@ -155,7 +169,6 @@ function buildAssetPrompt(
             summary: "одно плотное предложение",
             positiveFactors: ["3 коротких пункта"],
             negativeFactors: ["3 коротких пункта"],
-            actionItems: ["3 проверки без команд купить/продать"],
             riskScore: "число 0-100, рассчитанное только из разрешённых данных",
             riskLevel: "LOW | MEDIUM | HIGH | CRITICAL"
         },
@@ -167,6 +180,7 @@ function buildAssetPrompt(
             "Не сравнивай с другими активами.",
             "Не используй базовый риск.",
             "Не упоминай backend, demo, source, dataPoints, API, биржу или техническую сторону сбора данных.",
+            "Не добавляй раздел actionItems.",
             "Не советуй купить или продать.",
             "Свежие новости не выдумывать."
         ],
@@ -185,7 +199,7 @@ function buildAssetPrompt(
     });
 }
 
-function buildPortfolioPrompt(portfolio: PortfolioSimulator): string {
+function buildPortfolioPrompt(portfolio: PortfolioSimulator, fallbackRiskScore: number): string {
     return JSON.stringify({
         task: "Собери короткий AI-отчёт по портфелю.",
         output: {
@@ -193,7 +207,6 @@ function buildPortfolioPrompt(portfolio: PortfolioSimulator): string {
             summary: "одно плотное предложение",
             positiveFactors: ["3 коротких пункта"],
             negativeFactors: ["3 коротких пункта"],
-            actionItems: ["3 проверки без команд купить/продать"],
             riskScore: "число 0-100",
             riskLevel: "LOW | MEDIUM | HIGH | CRITICAL"
         },
@@ -201,6 +214,7 @@ function buildPortfolioPrompt(portfolio: PortfolioSimulator): string {
             "Не пиши общие фразы.",
             "Не пиши длинные объяснения.",
             "Опирайся на позиции, лоты, PnL, валюты и концентрацию.",
+            "Не добавляй раздел actionItems.",
             "Не советуй купить или продать."
         ],
         data: {
@@ -232,7 +246,8 @@ function buildPortfolioPrompt(portfolio: PortfolioSimulator): string {
                 profitLossPercent: holding.profitLossPercent,
                 lotsCount: holding.lots.length
             }))
-        }
+        },
+        fallbackRiskScore
     });
 }
 
@@ -250,15 +265,11 @@ function parseAiJson(text: string, fallbackRiskScore: number): ParsedAiReport {
             "Средний объём учтён."
         ]),
         negativeFactors: normalizeStringArray(parsed.negativeFactors, [
-            "Новостной фон не подтверждён.",
             "Сильные движения могут быстро смениться.",
-            "Свечной контекст ограничен текущим периодом."
+            "Свечной контекст ограничен текущим периодом.",
+            "Новостной фон не подтверждён."
         ]),
-        actionItems: normalizeStringArray(parsed.actionItems, [
-            "Сверить движение на нескольких периодах.",
-            "Проверить реакцию цены возле локальных экстремумов.",
-            "Оценить размер позиции через симулятор."
-        ]),
+        actionItems: [],
         riskScore,
         riskLevel: normalizeRiskLevel(parsed.riskLevel, toAiRiskLevel(riskScore))
     };
@@ -297,8 +308,8 @@ function generateLocalAssetReport(summary: AnalyticsSummary, candles: Candle[]):
                 ? `Цена растёт на ${formatPercent(summary.priceChangePercent)}.`
                 : `Цена уже снизилась на ${formatPercent(absMove)}.`,
             candleBias >= 0
-                ? `Свечная структура держит положительный уклон.`
-                : `После снижения есть база для проверки реакции.`,
+                ? "Свечная структура держит положительный уклон."
+                : "После снижения есть база для проверки реакции.",
             summary.averageVolume > 0
                 ? `Средний объём: ${formatCompactNumber(summary.averageVolume)}.`
                 : "Объём пока слабый."
@@ -314,11 +325,7 @@ function generateLocalAssetReport(summary: AnalyticsSummary, candles: Candle[]):
                 ? `Текущий период красный: ${formatPercent(summary.priceChangePercent)}.`
                 : "Рост не отменяет риск отката."
         ],
-        actionItems: [
-            "Проверить день, неделю и месяц.",
-            "Сравнить цену с последними локальными максимумами и минимумами.",
-            "Оценить размер позиции через портфельный симулятор."
-        ],
+        actionItems: [],
         riskScore,
         riskLevel,
         disclaimer: "Не инвестиционная рекомендация."
@@ -356,11 +363,7 @@ function generateLocalPortfolioReport(portfolio: PortfolioSimulator): AiReport {
                 : "Нет слабой открытой позиции.",
             `Портфельный риск: ${riskScore}/100.`
         ],
-        actionItems: [
-            "Проверить концентрацию крупнейшей позиции.",
-            "Сравнить лучший и худший открытый PnL.",
-            "Оценить, нужен ли новый вход отдельным лотом."
-        ],
+        actionItems: [],
         riskScore,
         riskLevel,
         disclaimer: "Не инвестиционная рекомендация."

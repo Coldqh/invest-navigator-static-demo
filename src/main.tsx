@@ -19,6 +19,7 @@ import "./styles/final-colors-and-history.css";
 import "./styles/final-trading-polish.css";
 import "./styles/final-risk-chart-polish.css";
 import "./styles/final-ai-report-data-polish.css";
+import "./styles/final-ai-report-yandex-fix.css";
 
 const rootElement = document.getElementById("root");
 
