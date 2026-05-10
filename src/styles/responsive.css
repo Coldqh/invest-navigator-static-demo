@@ -1,0 +1,528 @@
+@media (max-width: 1280px) {
+    .main-content {
+        padding: 24px;
+    }
+
+    .panel {
+        padding: 22px;
+    }
+
+    .dashboard-market-grid,
+    .dashboard-grid-main,
+    .asset-grid,
+    .asset-grid-rich {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .assets-overview-grid,
+    .summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .assets-controls {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .asset-details-hero,
+    .asset-details-grid,
+    .portfolio-top-grid,
+    .portfolio-bottom-grid,
+    .data-grid,
+    .ai-report-hero,
+    .ai-report-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-account-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .portfolio-account-form,
+    .portfolio-buy-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .portfolio-buy-form button[type="submit"],
+    .portfolio-account-form button[type="submit"] {
+        min-height: 44px;
+    }
+
+    .portfolio-buy-calculator {
+        grid-column: 1 / -1;
+    }
+
+    .portfolio-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .portfolio-line,
+    .closed-trade-card,
+    .portfolio-transaction-card {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-line-actions {
+        justify-content: start;
+    }
+
+    .portfolio-line-metrics,
+    .portfolio-lot-line .portfolio-line-metrics {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .portfolio-lot-list {
+        padding-left: 0;
+    }
+}
+
+@media (max-width: 1100px) {
+    .app-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        height: auto;
+        padding: 14px 18px;
+        border-right: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        background:
+                radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 16rem),
+                rgba(2, 6, 23, 0.86);
+    }
+
+    .brand {
+        justify-content: space-between;
+    }
+
+    .brand > span {
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+    }
+
+    .brand strong {
+        font-size: 14px;
+    }
+
+    .brand small {
+        font-size: 12px;
+    }
+
+    .nav {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+        scrollbar-width: thin;
+    }
+
+    .nav a {
+        flex: 0 0 auto;
+        min-height: 38px;
+        padding: 10px 13px;
+        white-space: nowrap;
+    }
+
+    .main-content {
+        padding: 22px;
+    }
+
+    .page-header,
+    .panel-header {
+        align-items: stretch;
+    }
+
+    h1 {
+        font-size: clamp(36px, 8vw, 54px);
+    }
+
+    .hero-actions {
+        width: 100%;
+    }
+
+    .hero-actions .primary-button,
+    .hero-actions .ghost-button {
+        flex: 1 1 160px;
+    }
+
+    .compare-hero-grid,
+    .compare-summary-grid,
+    .dashboard-grid-market,
+    .dashboard-grid-pulse {
+        grid-template-columns: 1fr;
+    }
+
+    .compare-versus {
+        min-height: 120px;
+    }
+
+    .asset-chart-header {
+        display: grid;
+    }
+
+    .asset-chart-controls {
+        justify-content: start;
+    }
+
+    .asset-line-chart {
+        height: 320px;
+    }
+
+    .asset-candle-strip-large {
+        grid-template-columns: repeat(auto-fit, minmax(22px, 1fr));
+    }
+
+    .dashboard-pulse-grid,
+    .dashboard-signal-grid,
+    .dashboard-position-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 820px) {
+    .main-content {
+        padding: 18px;
+    }
+
+    .page {
+        gap: 18px;
+    }
+
+    .panel {
+        padding: 18px;
+        border-radius: 22px;
+    }
+
+    .page-header,
+    .panel-header {
+        flex-direction: column;
+    }
+
+    .dashboard-market-grid,
+    .dashboard-grid-main,
+    .dashboard-pulse-grid,
+    .dashboard-signal-grid,
+    .dashboard-position-grid,
+    .assets-overview-grid,
+    .assets-controls,
+    .asset-grid,
+    .asset-grid-rich,
+    .summary-grid,
+    .portfolio-summary-grid,
+    .portfolio-account-grid,
+    .portfolio-account-form,
+    .portfolio-buy-form,
+    .portfolio-buy-calculator,
+    .portfolio-line-metrics,
+    .portfolio-lot-line .portfolio-line-metrics,
+    .portfolio-line-actions,
+    .portfolio-line-sell-actions,
+    .best-worst-grid,
+    .data-grid,
+    .compare-form-rich,
+    .compare-metric-row {
+        grid-template-columns: 1fr;
+    }
+
+    .primary-button,
+    .ghost-button {
+        width: 100%;
+    }
+
+    .asset-card-rich {
+        min-height: auto;
+    }
+
+    .asset-card-title-row {
+        flex-wrap: wrap;
+    }
+
+    .asset-card-title-row strong {
+        font-size: 30px;
+    }
+
+    .asset-price-block strong,
+    .compare-price-block strong,
+    .asset-details-price-card > strong {
+        font-size: 30px;
+    }
+
+    .asset-details-hero {
+        padding: 22px;
+        border-radius: 24px;
+    }
+
+    .asset-details-badges {
+        gap: 8px;
+    }
+
+    .asset-details-badges span {
+        min-height: 28px;
+        font-size: 10px;
+    }
+
+    .asset-line-chart {
+        height: 300px;
+    }
+
+    .asset-line-chart-point {
+        width: 10px;
+        height: 10px;
+    }
+
+    .asset-chart-tooltip {
+        min-width: 180px;
+        max-width: min(260px, 80vw);
+    }
+
+    .asset-candle-strip-large {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        min-height: auto;
+    }
+
+    .asset-candle-strip-large .asset-candle-bar {
+        min-height: 230px;
+    }
+
+    .asset-risk-score {
+        grid-template-columns: 1fr;
+    }
+
+    .asset-risk-orb {
+        width: 118px;
+        height: 118px;
+    }
+
+    .asset-risk-orb strong {
+        font-size: 32px;
+    }
+
+    .compare-empty-state {
+        min-height: 180px;
+        padding: 24px;
+    }
+
+    .compare-empty-state h2 {
+        font-size: 34px;
+    }
+
+    .compare-card-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .ranking-row,
+    .dashboard-transaction-row {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-line {
+        min-height: auto;
+        padding: 14px;
+    }
+
+    .portfolio-line-title strong {
+        font-size: 24px;
+        white-space: normal;
+    }
+
+    .portfolio-lot-line .portfolio-line-title strong {
+        font-size: 18px;
+        line-height: 1.25;
+        white-space: normal;
+    }
+
+    .portfolio-inline-metric strong,
+    .portfolio-calculator-metric strong {
+        white-space: normal;
+    }
+
+    .closed-trade-card > strong,
+    .portfolio-transaction-card > strong {
+        font-size: 22px;
+    }
+
+    .ai-report-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .ai-score-card {
+        width: 126px;
+        height: 126px;
+    }
+
+    .ai-verdict-card strong {
+        font-size: 26px;
+    }
+
+    .data-textarea-label textarea {
+        min-height: 220px;
+    }
+}
+
+@media (max-width: 520px) {
+    .sidebar {
+        padding: 12px;
+    }
+
+    .brand {
+        gap: 10px;
+    }
+
+    .brand > span {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        font-size: 13px;
+    }
+
+    .brand strong {
+        max-width: 190px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .brand small {
+        display: none;
+    }
+
+    .nav a {
+        min-height: 36px;
+        padding: 9px 11px;
+        border-radius: 12px;
+        font-size: 13px;
+    }
+
+    .main-content {
+        padding: 14px;
+    }
+
+    h1 {
+        font-size: 34px;
+        line-height: 0.98;
+    }
+
+    h2 {
+        font-size: 22px;
+    }
+
+    .panel {
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .dashboard-hero,
+    .asset-details-hero {
+        padding: 20px;
+    }
+
+    .dashboard-hero-clean {
+        min-height: 160px;
+    }
+
+    .dashboard-market-card,
+    .dashboard-pulse-card,
+    .dashboard-signal-card,
+    .summary-card,
+    .assets-overview-card,
+    .portfolio-account-card,
+    .portfolio-calculator-metric {
+        min-height: auto;
+        padding: 15px;
+    }
+
+    .dashboard-market-card strong,
+    .dashboard-signal-card strong,
+    .dashboard-position-card strong,
+    .assets-overview-card strong,
+    .summary-card strong,
+    .portfolio-account-card strong {
+        font-size: 22px;
+    }
+
+    .asset-card-rich {
+        padding: 18px;
+    }
+
+    .asset-card-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .asset-details-price-card {
+        padding: 18px;
+    }
+
+    .asset-chart-segment {
+        width: 100%;
+    }
+
+    .asset-chart-segment button {
+        flex: 1;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+
+    .asset-line-chart {
+        height: 260px;
+    }
+
+    .asset-candle-strip-large {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .asset-candle-strip-large .asset-candle-bar {
+        min-height: 210px;
+    }
+
+    .asset-chart-tooltip {
+        left: 0;
+        transform: translateX(0);
+    }
+
+    .asset-chart-tooltip::before {
+        left: 18px;
+        transform: rotate(45deg);
+    }
+
+    .portfolio-line {
+        border-radius: 16px;
+    }
+
+    .portfolio-line-title strong {
+        font-size: 22px;
+    }
+
+    .portfolio-lot-line .portfolio-line-title strong {
+        font-size: 17px;
+    }
+
+    .portfolio-account-form,
+    .portfolio-buy-form {
+        padding: 16px;
+    }
+
+    .closed-trade-card,
+    .portfolio-transaction-card {
+        padding: 14px;
+    }
+
+    .ai-verdict-card {
+        padding: 16px;
+    }
+
+    .ai-verdict-card strong {
+        font-size: 22px;
+    }
+
+    .ai-list-card {
+        padding: 16px;
+    }
+
+    .data-action-list {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+}

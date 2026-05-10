@@ -10,6 +10,7 @@ import "./styles/compare.css";
 import "./styles/portfolio.css";
 import "./styles/ai-report.css";
 import "./styles/data.css";
+import "./styles/responsive.css";
 
 const rootElement = document.getElementById("root");
 
