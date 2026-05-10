@@ -14,7 +14,6 @@ import "./styles/responsive.css";
 import "./styles/compact-layout.css";
 import "./styles/final-mobile-polish.css";
 import "./styles/final-graph-compare-fix.css";
-import "./styles/final-last-mobile-fixes.css";
 
 const rootElement = document.getElementById("root");
 

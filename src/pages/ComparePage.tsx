@@ -111,29 +111,6 @@ export function ComparePage() {
         ];
     }, [leftAnalytics, rightAnalytics, leftAsset?.currency, rightAsset?.currency]);
 
-    const score = useMemo(() => {
-        return metrics.reduce(
-            (current, metric) => {
-                if (metric.leftScore === metric.rightScore) {
-                    return current;
-                }
-
-                const leftBetter = metric.higherIsBetter
-                    ? metric.leftScore > metric.rightScore
-                    : metric.leftScore < metric.rightScore;
-
-                return {
-                    left: current.left + (leftBetter ? 1 : 0),
-                    right: current.right + (leftBetter ? 0 : 1)
-                };
-            },
-            {
-                left: 0,
-                right: 0
-            }
-        );
-    }, [metrics]);
-
     if (isLoading) {
         return <LoadingBlock text="Сравниваем активы..." />;
     }
@@ -155,13 +132,7 @@ export function ComparePage() {
             <article className="compare-vs-middle">
                 <div className="compare-vs-title-row">
                     <strong>{leftTicker}</strong>
-
-                    <div className="compare-vs-center">
-                        <span>{score.left}</span>
-                        <div className="compare-vs-badge">VS</div>
-                        <span>{score.right}</span>
-                    </div>
-
+                    <div className="compare-vs-badge">VS</div>
                     <strong>{rightTicker}</strong>
                 </div>
 
