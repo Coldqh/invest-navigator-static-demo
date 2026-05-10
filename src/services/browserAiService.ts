@@ -1,5 +1,5 @@
 import { YANDEX_GPT_CONFIG } from "../config/yandexGptConfig";
-import type { AnalyticsSummary, PortfolioSimulator } from "../types/domain";
+import type { AnalyticsSummary, Candle, PortfolioSimulator } from "../types/domain";
 
 export type AiRiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 
@@ -39,11 +39,16 @@ type ParsedAiReport = {
     riskLevel: AiRiskLevel;
 };
 
-export async function generateAssetReport(summary: AnalyticsSummary): Promise<AiReport> {
+export async function generateAssetReport(
+    summary: AnalyticsSummary,
+    candles: Candle[] = []
+): Promise<AiReport> {
+    const fallbackRiskScore = calculateAssetAiRiskScore(summary, candles);
+
     if (YANDEX_GPT_CONFIG.enabled && YANDEX_GPT_CONFIG.apiKey) {
         try {
-            const text = await requestYandexGpt(buildAssetPrompt(summary));
-            const parsed = parseAiJson(text, summary.riskScore);
+            const text = await requestYandexGpt(buildAssetPrompt(summary, candles, fallbackRiskScore));
+            const parsed = parseAiJson(text, fallbackRiskScore);
 
             return {
                 provider: "YANDEX_GPT",
@@ -51,11 +56,11 @@ export async function generateAssetReport(summary: AnalyticsSummary): Promise<Ai
                 disclaimer: "Не инвестиционная рекомендация."
             };
         } catch {
-            return generateLocalAssetReport(summary);
+            return generateLocalAssetReport(summary, candles);
         }
     }
 
-    return generateLocalAssetReport(summary);
+    return generateLocalAssetReport(summary, candles);
 }
 
 export async function generatePortfolioReport(portfolio: PortfolioSimulator): Promise<AiReport> {
@@ -91,7 +96,7 @@ async function requestYandexGpt(prompt: string): Promise<string> {
             modelUri: YANDEX_GPT_CONFIG.modelUri,
             completionOptions: {
                 stream: false,
-                temperature: 0.25,
+                temperature: 0.18,
                 maxTokens: Math.max(YANDEX_GPT_CONFIG.maxTokens, 900)
             },
             messages: [
@@ -101,10 +106,10 @@ async function requestYandexGpt(prompt: string): Promise<string> {
                         "Ты аналитический движок в инвестиционном демо-приложении.",
                         "Отвечай только валидным JSON без markdown.",
                         "Стиль: коротко, жёстко, продуктово, без воды.",
-                        "Не используй фразы: может быть, стоит обратить внимание, важно понимать, в целом.",
-                        "Не давай прямых команд купить или продать.",
-                        "Не пиши юридические длинные дисклеймеры.",
-                        "Каждый пункт должен быть конкретным и связанным с числами."
+                        "Не давай команд купить или продать.",
+                        "Не используй биржу, источник данных, количество свечей, другие активы, базовый риск или внутренние модели риска, если они не переданы в пользовательских данных.",
+                        "Для отчёта по активу опирайся только на цену, изменение, волатильность, средний объём и свечи.",
+                        "Можно использовать общий рыночный контекст из модели, но нельзя выдумывать свежие новости."
                     ].join(" ")
                 },
                 {
@@ -129,7 +134,20 @@ async function requestYandexGpt(prompt: string): Promise<string> {
     return text;
 }
 
-function buildAssetPrompt(summary: AnalyticsSummary): string {
+function buildAssetPrompt(
+    summary: AnalyticsSummary,
+    candles: Candle[],
+    fallbackRiskScore: number
+): string {
+    const preparedCandles = candles.slice(-60).map((candle) => ({
+        timestamp: candle.timestamp,
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+        volume: candle.volume
+    }));
+
     return JSON.stringify({
         task: "Собери короткий AI-отчёт по активу.",
         output: {
@@ -138,18 +156,22 @@ function buildAssetPrompt(summary: AnalyticsSummary): string {
             positiveFactors: ["3 коротких пункта"],
             negativeFactors: ["3 коротких пункта"],
             actionItems: ["3 проверки без команд купить/продать"],
-            riskScore: "число 0-100",
+            riskScore: "число 0-100, рассчитанное только из разрешённых данных",
             riskLevel: "LOW | MEDIUM | HIGH | CRITICAL"
         },
-        constraints: [
-            "Не пиши общие фразы.",
-            "Не пиши длинные объяснения.",
-            "Каждый фактор должен опираться на цену, движение, риск, объём, источник или волатильность.",
-            "actionItems должны звучать как проверки: сравнить, проверить, оценить, дождаться данных."
+        hardRules: [
+            "Используй только currentPrice, priceChange, priceChangePercent, averageVolume, volatilityPercent и candles.",
+            "Не используй биржу.",
+            "Не используй источник данных.",
+            "Не используй количество свечей или точек как фактор.",
+            "Не сравнивай с другими активами.",
+            "Не используй базовый риск.",
+            "Не упоминай backend, demo, source, dataPoints, API, биржу или техническую сторону сбора данных.",
+            "Не советуй купить или продать.",
+            "Свежие новости не выдумывать."
         ],
-        data: {
+        allowedData: {
             ticker: summary.ticker,
-            name: summary.name,
             currentPrice: summary.currentPrice,
             firstClose: summary.firstClose,
             lastClose: summary.lastClose,
@@ -157,11 +179,9 @@ function buildAssetPrompt(summary: AnalyticsSummary): string {
             priceChangePercent: summary.priceChangePercent,
             averageVolume: summary.averageVolume,
             volatilityPercent: summary.volatilityPercent,
-            riskScore: summary.riskScore,
-            riskLevel: summary.riskLevel,
-            dataPoints: summary.dataPoints,
-            source: summary.source
-        }
+            candles: preparedCandles
+        },
+        fallbackRiskScore
     });
 }
 
@@ -225,19 +245,19 @@ function parseAiJson(text: string, fallbackRiskScore: number): ParsedAiReport {
         verdict: normalizeString(parsed.verdict, buildVerdictByRisk(riskScore)),
         summary: normalizeString(parsed.summary, buildSummaryByRisk(riskScore)),
         positiveFactors: normalizeStringArray(parsed.positiveFactors, [
-            "Данные обработаны.",
-            "Есть расчёт движения.",
-            "Есть базовая оценка риска."
+            "Цена и свечи обработаны.",
+            "Волатильность учтена.",
+            "Средний объём учтён."
         ]),
         negativeFactors: normalizeStringArray(parsed.negativeFactors, [
-            "Данных мало для глубокого вывода.",
-            "Новостной фон не учитывается.",
-            "Исторический контекст ограничен."
+            "Новостной фон не подтверждён.",
+            "Сильные движения могут быстро смениться.",
+            "Свечной контекст ограничен текущим периодом."
         ]),
         actionItems: normalizeStringArray(parsed.actionItems, [
-            "Сравнить с похожими активами.",
-            "Проверить график на разных периодах.",
-            "Оценить размер позиции."
+            "Сверить движение на нескольких периодах.",
+            "Проверить реакцию цены возле локальных экстремумов.",
+            "Оценить размер позиции через симулятор."
         ]),
         riskScore,
         riskLevel: normalizeRiskLevel(parsed.riskLevel, toAiRiskLevel(riskScore))
@@ -260,42 +280,43 @@ function extractJsonText(text: string): string {
     return cleaned;
 }
 
-function generateLocalAssetReport(summary: AnalyticsSummary): AiReport {
-    const riskScore = summary.riskScore;
+function generateLocalAssetReport(summary: AnalyticsSummary, candles: Candle[]): AiReport {
+    const riskScore = calculateAssetAiRiskScore(summary, candles);
     const riskLevel = toAiRiskLevel(riskScore);
     const direction = summary.priceChangePercent >= 0 ? "рост" : "падение";
     const absMove = Math.abs(summary.priceChangePercent);
-    const isRealSource = summary.source !== "DEMO";
+    const drawdown = calculateMaxDrawdownPercent(candles.map((candle) => candle.close));
+    const candleBias = calculateCandleBias(candles);
 
     return {
         provider: "MOCK",
-        verdict: buildAssetVerdict(summary),
-        summary: `${summary.ticker}: ${direction} ${formatPercent(absMove)}, риск ${riskScore}/100, волатильность ${formatPercent(summary.volatilityPercent)}, источник ${summary.source}.`,
+        verdict: buildAssetVerdict(summary, riskScore),
+        summary: `${summary.ticker}: ${direction} ${formatPercent(absMove)}, волатильность ${formatPercent(summary.volatilityPercent)}, средний объём ${formatCompactNumber(summary.averageVolume)}.`,
         positiveFactors: [
             summary.priceChangePercent >= 0
-                ? `Импульс вверх: ${formatPercent(summary.priceChangePercent)}.`
-                : `Снижение уже отражено в цене: ${formatPercent(summary.priceChangePercent)}.`,
+                ? `Цена растёт на ${formatPercent(summary.priceChangePercent)}.`
+                : `Цена уже снизилась на ${formatPercent(absMove)}.`,
+            candleBias >= 0
+                ? `Свечная структура держит положительный уклон.`
+                : `После снижения есть база для проверки реакции.`,
             summary.averageVolume > 0
-                ? `Объём есть: ${formatCompactNumber(summary.averageVolume)}.`
-                : "Объём слабый или недоступен.",
-            isRealSource
-                ? `Источник живой: ${summary.source}.`
-                : "DEMO fallback сохраняет анализ без backend."
+                ? `Средний объём: ${formatCompactNumber(summary.averageVolume)}.`
+                : "Объём пока слабый."
         ],
         negativeFactors: [
-            riskScore >= 60
-                ? `Риск высокий: ${riskScore}/100.`
-                : `Риск не нулевой: ${riskScore}/100.`,
             summary.volatilityPercent >= 3
-                ? `Волатильность давит: ${formatPercent(summary.volatilityPercent)}.`
-                : `Волатильность низкая: ${formatPercent(summary.volatilityPercent)}.`,
-            isRealSource
-                ? "Новости и отчётность не входят в расчёт."
-                : "DEMO-источник снижает точность."
+                ? `Волатильность высокая: ${formatPercent(summary.volatilityPercent)}.`
+                : `Волатильность есть: ${formatPercent(summary.volatilityPercent)}.`,
+            drawdown > 0
+                ? `Максимальная просадка по свечам: ${formatPercent(drawdown)}.`
+                : "Просадка по свечам почти отсутствует.",
+            summary.priceChangePercent < 0
+                ? `Текущий период красный: ${formatPercent(summary.priceChangePercent)}.`
+                : "Рост не отменяет риск отката."
         ],
         actionItems: [
-            `Сравнить ${summary.ticker} с активами из той же категории.`,
-            "Проверить день, неделю и месяц на графике.",
+            "Проверить день, неделю и месяц.",
+            "Сравнить цену с последними локальными максимумами и минимумами.",
             "Оценить размер позиции через портфельный симулятор."
         ],
         riskScore,
@@ -346,12 +367,46 @@ function generateLocalPortfolioReport(portfolio: PortfolioSimulator): AiReport {
     };
 }
 
-function buildAssetVerdict(summary: AnalyticsSummary): string {
-    if (summary.riskScore >= 80) return `${summary.ticker}: риск перегрет`;
-    if (summary.riskScore >= 60) return `${summary.ticker}: высокая турбулентность`;
+function calculateAssetAiRiskScore(summary: AnalyticsSummary, candles: Candle[]): number {
+    const closes = candles.map((candle) => candle.close);
+    const drawdown = calculateMaxDrawdownPercent(closes);
+    const downside = calculateDownsideDaysPercent(closes);
+    const candleBias = calculateCandleBias(candles);
+
+    const volatilityRisk = clamp(summary.volatilityPercent * 9, 0, 30);
+    const drawdownRisk = clamp(drawdown * 1.3, 0, 28);
+    const downsideRisk = clamp(downside * 0.12, 0, 14);
+    const negativeMoveRisk = summary.priceChangePercent < 0
+        ? clamp(Math.abs(summary.priceChangePercent) * 1.4, 0, 22)
+        : 0;
+    const positiveMoveDiscount = summary.priceChangePercent > 0
+        ? clamp(summary.priceChangePercent * 0.9, 0, 16)
+        : 0;
+    const candleBiasDiscount = candleBias > 0 ? clamp(candleBias * 10, 0, 10) : 0;
+    const candleBiasPenalty = candleBias < 0 ? clamp(Math.abs(candleBias) * 10, 0, 10) : 0;
+
+    return clamp(
+        Math.round(
+            18 +
+            volatilityRisk +
+            drawdownRisk +
+            downsideRisk +
+            negativeMoveRisk +
+            candleBiasPenalty -
+            positiveMoveDiscount -
+            candleBiasDiscount
+        ),
+        5,
+        92
+    );
+}
+
+function buildAssetVerdict(summary: AnalyticsSummary, riskScore: number): string {
+    if (riskScore >= 75) return `${summary.ticker}: риск высокий`;
+    if (riskScore >= 55) return `${summary.ticker}: движение нервное`;
     if (summary.priceChangePercent >= 5) return `${summary.ticker}: сильный импульс`;
-    if (summary.priceChangePercent <= -5) return `${summary.ticker}: сильная просадка`;
-    if (summary.volatilityPercent >= 3) return `${summary.ticker}: движение нервное`;
+    if (summary.priceChangePercent <= -5) return `${summary.ticker}: просадка`;
+    if (summary.volatilityPercent >= 3) return `${summary.ticker}: волатильный режим`;
 
     return `${summary.ticker}: спокойный режим`;
 }
@@ -394,6 +449,51 @@ function calculatePortfolioRiskScore(portfolio: PortfolioSimulator): number {
     const diversificationPenalty = portfolio.assetsCount < 3 ? (3 - portfolio.assetsCount) * 8 : 0;
 
     return clamp(Math.round(concentrationRisk + lossRisk + lotRisk + diversificationPenalty), 0, 100);
+}
+
+function calculateMaxDrawdownPercent(values: number[]): number {
+    if (values.length < 2) {
+        return 0;
+    }
+
+    let peak = values[0];
+    let maxDrawdown = 0;
+
+    values.forEach((value) => {
+        peak = Math.max(peak, value);
+
+        if (peak > 0) {
+            const drawdown = ((peak - value) / peak) * 100;
+            maxDrawdown = Math.max(maxDrawdown, drawdown);
+        }
+    });
+
+    return maxDrawdown;
+}
+
+function calculateDownsideDaysPercent(values: number[]): number {
+    if (values.length < 2) {
+        return 0;
+    }
+
+    const changes = values.slice(1).map((value, index) => {
+        return value - values[index];
+    });
+
+    const downsideDays = changes.filter((value) => value < 0).length;
+
+    return (downsideDays / changes.length) * 100;
+}
+
+function calculateCandleBias(candles: Candle[]): number {
+    if (candles.length === 0) {
+        return 0;
+    }
+
+    const greenCandles = candles.filter((candle) => candle.close >= candle.open).length;
+    const redCandles = candles.length - greenCandles;
+
+    return (greenCandles - redCandles) / candles.length;
 }
 
 function getLargestHolding(portfolio: PortfolioSimulator) {
@@ -457,9 +557,9 @@ function normalizeRiskLevel(value: unknown, fallback: AiRiskLevel): AiRiskLevel 
 }
 
 function buildVerdictByRisk(riskScore: number): string {
-    if (riskScore >= 80) return "Критический риск";
-    if (riskScore >= 60) return "Высокий риск";
-    if (riskScore >= 35) return "Средний риск";
+    if (riskScore >= 75) return "Критический риск";
+    if (riskScore >= 55) return "Высокий риск";
+    if (riskScore >= 32) return "Средний риск";
 
     return "Низкий риск";
 }
@@ -469,9 +569,9 @@ function buildSummaryByRisk(riskScore: number): string {
 }
 
 function toAiRiskLevel(score: number): AiRiskLevel {
-    if (score >= 80) return "CRITICAL";
-    if (score >= 60) return "HIGH";
-    if (score >= 35) return "MEDIUM";
+    if (score >= 75) return "CRITICAL";
+    if (score >= 55) return "HIGH";
+    if (score >= 32) return "MEDIUM";
 
     return "LOW";
 }

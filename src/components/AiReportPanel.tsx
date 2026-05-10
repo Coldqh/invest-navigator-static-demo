@@ -3,17 +3,31 @@ import type { AiReport } from "../services/browserAiService";
 type AiReportPanelProps = {
     title: string;
     report: AiReport;
+    onClose?: () => void;
 };
 
-export function AiReportPanel({ title, report }: AiReportPanelProps) {
-    return (
-        <article className="panel ai-report-panel">
-            <div className="panel-header">
+export function AiReportPanel({ title, report, onClose }: AiReportPanelProps) {
+    const content = (
+        <article className={onClose ? "panel ai-report-panel ai-report-modal" : "panel ai-report-panel"}>
+            <div className="panel-header ai-report-modal-header">
                 <div>
                     <h2>{title}</h2>
                 </div>
 
-                <span className="ai-provider-pill">{report.provider}</span>
+                <div className="ai-report-header-actions">
+                    <span className="ai-provider-pill">{report.provider}</span>
+
+                    {onClose && (
+                        <button
+                            type="button"
+                            className="ai-report-close-button"
+                            onClick={onClose}
+                            aria-label="Закрыть AI-отчёт"
+                        >
+                            ×
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="ai-report-hero">
@@ -39,6 +53,24 @@ export function AiReportPanel({ title, report }: AiReportPanelProps) {
                 <span>{report.disclaimer}</span>
             </div>
         </article>
+    );
+
+    if (!onClose) {
+        return content;
+    }
+
+    return (
+        <div
+            className="ai-report-modal-backdrop"
+            role="presentation"
+            onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                    onClose();
+                }
+            }}
+        >
+            {content}
+        </div>
     );
 }
 

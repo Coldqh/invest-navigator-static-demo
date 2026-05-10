@@ -18,6 +18,7 @@ import "./styles/final-last-mobile-fixes.css";
 import "./styles/final-colors-and-history.css";
 import "./styles/final-trading-polish.css";
 import "./styles/final-risk-chart-polish.css";
+import "./styles/final-ai-report-data-polish.css";
 
 const rootElement = document.getElementById("root");
 

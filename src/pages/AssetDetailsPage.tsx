@@ -173,7 +173,7 @@ export function AssetDetailsPage() {
         try {
             setError("");
             setIsGeneratingReport(true);
-            const nextReport = await generateAssetReport(analytics);
+            const nextReport = await generateAssetReport(analytics, sortedCandles);
             setReport(nextReport);
         } catch (nextError: unknown) {
             setError(
@@ -604,8 +604,8 @@ export function AssetDetailsPage() {
                                             className="asset-line-chart-dot asset-line-chart-visual-dot"
                                             cx={dot.x}
                                             cy={dot.y}
-                                            rx="15.5"
-                                            ry="10.6"
+                                            rx="10.4"
+                                            ry="7.1"
                                             onClick={() => setActiveChartCandle(dot.candle)}
                                         />
                                     ))}
@@ -689,8 +689,9 @@ export function AssetDetailsPage() {
 
                 {report && (
                     <AiReportPanel
-                        title="AI-анализ"
+                        title="AI-анализ актива"
                         report={report}
+                        onClose={() => setReport(null)}
                     />
                 )}
             </div>
