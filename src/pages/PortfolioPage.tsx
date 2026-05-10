@@ -698,38 +698,44 @@ export function PortfolioPage() {
             <details className="panel compact-portfolio-details">
                 <summary>
                     <div>
-                        <h2>Статистика</h2>
-                        <span>
-                            Активов {statistics.assetsCount} · Лотов {statistics.lotsCount}
-                        </span>
+                        <h2>Закрытые сделки</h2>
+                        <span>{portfolioState.closedTrades.length}</span>
                     </div>
                 </summary>
 
-                <div className="compact-portfolio-stats-grid">
-                    <div className="compact-portfolio-stat">
-                        <span>Активов</span>
-                        <strong>{statistics.assetsCount}</strong>
-                    </div>
+                {portfolioState.closedTrades.length === 0 ? (
+                    <div className="empty-state">Закрытых сделок пока нет</div>
+                ) : (
+                    <div className="compact-closed-trades-list">
+                        {portfolioState.closedTrades.map((trade) => {
+                            const boughtTotal = trade.purchasePrice * trade.quantity;
+                            const soldTotal = trade.sellPrice * trade.quantity;
+                            const pnl = soldTotal - boughtTotal;
+                            const pnlPercent = boughtTotal > 0 ? (pnl / boughtTotal) * 100 : 0;
 
-                    <div className="compact-portfolio-stat">
-                        <span>Лотов</span>
-                        <strong>{statistics.lotsCount}</strong>
-                    </div>
+                            return (
+                                <div
+                                    className={`compact-closed-trade-line ${pnl >= 0 ? "closed-trade-profit" : "closed-trade-loss"}`}
+                                    key={trade.id}
+                                >
+                                    <strong>
+                                        {formatQuantity(trade.quantity)} {trade.ticker}
+                                    </strong>
 
-                    <div className="compact-portfolio-stat">
-                        <span>Unrealized</span>
-                        <strong className={statistics.unrealized >= 0 ? "positive-value" : "negative-value"}>
-                            {formatMoney(statistics.unrealized, detectMainCurrency(groupedHoldings))}
-                        </strong>
-                    </div>
+                                    <span>{formatDateTime(trade.soldAt)}</span>
 
-                    <div className="compact-portfolio-stat">
-                        <span>Realized</span>
-                        <strong className={statistics.realized >= 0 ? "positive-value" : "negative-value"}>
-                            {formatMoney(statistics.realized, detectMainCurrency(groupedHoldings))}
-                        </strong>
+                                    <span>
+                            Куплено {formatMoney(boughtTotal, trade.currency)} · Продано {formatMoney(soldTotal, trade.currency)}
+                        </span>
+
+                                    <em className={pnl >= 0 ? "positive-value" : "negative-value"}>
+                                        {formatMoney(pnl, trade.currency)} · {formatPercentWithSign(pnlPercent)}
+                                    </em>
+                                </div>
+                            );
+                        })}
                     </div>
-                </div>
+                )}
             </details>
 
             <details className="panel compact-portfolio-details">
