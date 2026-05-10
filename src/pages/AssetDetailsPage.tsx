@@ -604,8 +604,8 @@ export function AssetDetailsPage() {
                                             className="asset-line-chart-dot asset-line-chart-visual-dot"
                                             cx={dot.x}
                                             cy={dot.y}
-                                            rx="10.4"
-                                            ry="7.1"
+                                            rx="6"
+                                            ry="6"
                                             onClick={() => setActiveChartCandle(dot.candle)}
                                         />
                                     ))}
