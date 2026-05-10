@@ -9,6 +9,7 @@ import "./styles/asset-details.css";
 import "./styles/compare.css";
 import "./styles/portfolio.css";
 import "./styles/ai-report.css";
+import "./styles/data.css";
 
 const rootElement = document.getElementById("root");
 

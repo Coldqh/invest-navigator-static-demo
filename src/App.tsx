@@ -4,6 +4,7 @@ import { AssetsPage } from "./pages/AssetsPage";
 import { AssetDetailsPage } from "./pages/AssetDetailsPage";
 import { ComparePage } from "./pages/ComparePage";
 import { PortfolioPage } from "./pages/PortfolioPage";
+import { DataPage } from "./pages/DataPage";
 
 export function App() {
     return (
@@ -22,6 +23,7 @@ export function App() {
                     <NavLink to="/assets">Активы</NavLink>
                     <NavLink to="/compare">Сравнение</NavLink>
                     <NavLink to="/portfolio">Портфель</NavLink>
+                    <NavLink to="/data">Данные</NavLink>
                 </nav>
             </aside>
 
@@ -32,6 +34,7 @@ export function App() {
                     <Route path="/assets/:ticker" element={<AssetDetailsPage />} />
                     <Route path="/compare" element={<ComparePage />} />
                     <Route path="/portfolio" element={<PortfolioPage />} />
+                    <Route path="/data" element={<DataPage />} />
                 </Routes>
             </main>
         </div>
