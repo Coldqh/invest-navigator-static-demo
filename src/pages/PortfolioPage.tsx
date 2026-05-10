@@ -741,46 +741,6 @@ export function PortfolioPage() {
             <details className="panel compact-portfolio-details">
                 <summary>
                     <div>
-                        <h2>Закрытые сделки</h2>
-                        <span>{portfolioState.closedTrades.length}</span>
-                    </div>
-                </summary>
-
-                {portfolioState.closedTrades.length === 0 ? (
-                    <div className="empty-state">Закрытых сделок пока нет</div>
-                ) : (
-                    <div className="compact-closed-trades-list">
-                        {portfolioState.closedTrades.map((trade) => {
-                            const pnl = (trade.sellPrice - trade.purchasePrice) * trade.quantity;
-                            const invested = trade.purchasePrice * trade.quantity;
-                            const pnlPercent = invested > 0 ? (pnl / invested) * 100 : 0;
-
-                            return (
-                                <div
-                                    className={`compact-closed-trade-line ${pnl >= 0 ? "closed-trade-profit" : "closed-trade-loss"}`}
-                                    key={trade.id}
-                                >
-                                    <strong>
-                                        {formatQuantity(trade.quantity)} {trade.ticker}
-                                    </strong>
-
-                                    <span>{formatDateTime(trade.soldAt)}</span>
-
-                                    <span>{formatMoney(trade.sellPrice, trade.currency)}</span>
-
-                                    <em className={pnl >= 0 ? "positive-value" : "negative-value"}>
-                                        {formatMoney(pnl, trade.currency)} · {formatPercentWithSign(pnlPercent)}
-                                    </em>
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
-            </details>
-
-            <details className="panel compact-portfolio-details">
-                <summary>
-                    <div>
                         <h2>История операций</h2>
                         <span>{portfolioState.transactions.length}</span>
                     </div>
