@@ -12,8 +12,6 @@ type MarketCardData = {
     className?: string;
 };
 
-type RankingMode = "percent" | "risk" | "volatility" | "volume" | "price";
-
 export function DashboardPage() {
     const [analytics, setAnalytics] = useState<AnalyticsSummary[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -158,7 +156,7 @@ export function DashboardPage() {
                 </div>
             </div>
 
-            <details className="panel compact-disclosure compact-disclosure-dashboard">
+            <details className="panel compact-disclosure compact-disclosure-dashboard" open>
                 <summary className="compact-disclosure-summary">
                     <div>
                         <h2>Топы рынка</h2>

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
 import { getAnalyticsSummary } from "../services/marketDataService";
-import type { AnalyticsSummary, Asset, AssetType } from "../types/domain";
+import type { AnalyticsSummary, Asset } from "../types/domain";
 
 export function AssetsPage() {
     const assets = useMemo(() => getAssets(), []);
@@ -71,13 +71,6 @@ export function AssetsPage() {
 
     return (
         <section className="page assets-page assets-page-ultra-compact">
-            <div className="page-header compact-page-header">
-                <div>
-                    <p className="eyebrow">Активы</p>
-                    <h1>Активы</h1>
-                </div>
-            </div>
-
             <div className="asset-category-list">
                 {groups.map((group) => (
                     <details className="panel asset-category-panel" key={group.id} open>
@@ -116,8 +109,7 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
     return (
         <Link to={`/assets/${asset.ticker}`} className="asset-thin-row">
             <strong>{asset.ticker}</strong>
-            <span>{asset.name}</span>
-            <em>{asset.exchange}</em>
+            <span>{formatAssetName(asset)}</span>
             <b>
                 {analytics
                     ? `${formatNumber(analytics.currentPrice)} ${asset.currency}`
@@ -129,6 +121,13 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
             <small>{analytics ? `${analytics.riskScore}/100` : "—"}</small>
         </Link>
     );
+}
+
+function formatAssetName(asset: Asset): string {
+    return asset.name
+        .replace(/\s*\/\s*Tether$/i, "")
+        .replace(/\s*\/\s*USDT$/i, "")
+        .trim();
 }
 
 function formatNumber(value: number): string {

@@ -1,9 +1,17 @@
 @media (max-width: 900px) {
+    .app-shell {
+        min-height: 0 !important;
+    }
+
     .sidebar {
         display: grid;
         grid-template-columns: auto 1fr;
         align-items: center;
-        gap: 10px 12px;
+        align-content: start !important;
+        gap: 8px 10px;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
         padding: 8px 10px;
     }
 
@@ -61,9 +69,13 @@
     }
 
     .compact-hero {
-        min-height: 58px;
+        min-height: 58px !important;
         padding: 10px 12px;
         border-radius: 14px;
+    }
+
+    .dashboard-hero-clean {
+        min-height: 58px !important;
     }
 
     .compact-hero h1 {
@@ -159,7 +171,7 @@
 
     .asset-thin-row {
         display: grid;
-        grid-template-columns: 0.72fr 1fr 0.65fr 0.95fr 0.68fr 0.58fr;
+        grid-template-columns: 0.76fr 1.15fr 1fr 0.66fr 0.56fr;
         align-items: center;
         gap: 6px;
         min-height: 30px;
@@ -179,7 +191,6 @@
     }
 
     .asset-thin-row span,
-    .asset-thin-row em,
     .asset-thin-row b,
     .asset-thin-row i,
     .asset-thin-row small {
@@ -193,11 +204,6 @@
 
     .asset-thin-row span {
         color: #94a3b8;
-    }
-
-    .asset-thin-row em {
-        color: #38bdf8;
-        text-transform: uppercase;
     }
 
     .asset-thin-row b {
@@ -325,26 +331,114 @@
         font-size: 10px;
     }
 
+    .asset-chart-body {
+        position: relative;
+        overflow: hidden;
+    }
+
     .asset-line-chart {
         height: 230px;
+    }
+
+    .asset-line-chart-point {
+        width: 16px !important;
+        height: 16px !important;
+        margin-left: -8px;
+        margin-top: -8px;
+        padding: 0;
+        border: 2px solid #020617;
+        border-radius: 999px;
+        background: #38bdf8;
+        box-shadow: 0 0 14px rgba(56, 189, 248, 0.8);
+        cursor: pointer;
+    }
+
+    .asset-line-chart-point .asset-chart-tooltip,
+    .asset-candle-tooltip {
+        display: none !important;
+    }
+
+    .asset-chart-fixed-tooltip {
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 10px;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px 10px;
+        max-width: none;
+        padding: 10px 12px;
+        border-radius: 14px;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        background: rgba(2, 6, 23, 0.92);
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .asset-chart-fixed-tooltip button {
+        position: absolute;
+        right: 8px;
+        top: 6px;
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 999px;
+        color: #e2e8f0;
+        background: rgba(148, 163, 184, 0.12);
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .asset-chart-fixed-tooltip strong {
+        grid-column: 1 / -1;
+        padding-right: 28px;
+        color: #f8fafc;
+        font-size: 13px;
+    }
+
+    .asset-chart-fixed-tooltip span,
+    .asset-chart-fixed-tooltip em {
+        color: #cbd5e1;
+        font-size: 11px;
+        font-style: normal;
+        font-weight: 800;
+    }
+
+    .asset-chart-fixed-tooltip em {
+        color: #38bdf8;
     }
 
     .asset-candle-strip-large {
         display: flex !important;
         grid-template-columns: none !important;
-        gap: 5px;
+        gap: 3px;
+        align-items: stretch;
         min-height: 230px;
-        overflow-x: auto;
+        overflow: hidden;
         padding: 8px;
     }
 
     .asset-candle-strip-large .asset-candle-bar {
-        flex: 0 0 18px;
+        position: relative;
+        flex: 1 1 0;
+        min-width: 0;
         min-height: 210px;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        cursor: pointer;
     }
 
     .asset-candle-strip-large .asset-candle-body {
-        width: 10px;
+        width: min(10px, 70%);
+    }
+
+    .asset-candle-strip-large .asset-candle-wick {
+        width: 2px;
+    }
+
+    .asset-candle-strip-large .asset-candle-bar span {
+        display: none !important;
     }
 
     .compare-page .compare-empty-state,
@@ -399,18 +493,11 @@
     }
 
     .portfolio-page h1 {
-        font-size: 28px;
-    }
-
-    .portfolio-page h1::before {
-        content: "Портфель";
-    }
-
-    .portfolio-page h1 {
         font-size: 0;
     }
 
     .portfolio-page h1::before {
+        content: "Портфель";
         font-size: 28px;
     }
 
@@ -549,10 +636,10 @@
     .portfolio-line-actions .primary-button,
     .portfolio-line-actions .ghost-button {
         min-height: 26px;
+        width: auto;
         padding: 0 6px;
         border-radius: 8px;
         font-size: 8px;
-        width: auto;
     }
 
     .portfolio-line-actions input {

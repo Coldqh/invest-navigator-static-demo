@@ -33,6 +33,7 @@ export function AssetDetailsPage() {
     const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
     const [candles, setCandles] = useState<Candle[]>([]);
     const [report, setReport] = useState<AiReport | null>(null);
+    const [activeChartCandle, setActiveChartCandle] = useState<Candle | null>(null);
 
     const [chartPeriod, setChartPeriod] = useState<ChartPeriod>("MONTH");
     const [chartViewMode, setChartViewMode] = useState<ChartViewMode>("LINE");
@@ -53,6 +54,7 @@ export function AssetDetailsPage() {
             return;
         }
 
+        setActiveChartCandle(null);
         loadChartOnly(asset, chartPeriod);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [chartPeriod]);
@@ -67,6 +69,7 @@ export function AssetDetailsPage() {
             setError("");
             setIsInitialLoading(true);
             setReport(null);
+            setActiveChartCandle(null);
 
             const [loadedPrice, loadedAnalytics, loadedCandles] = await Promise.all([
                 getMarketPrice(currentAsset.ticker),
@@ -358,7 +361,10 @@ export function AssetDetailsPage() {
                             <button
                                 type="button"
                                 className={chartViewMode === "LINE" ? "active" : ""}
-                                onClick={() => setChartViewMode("LINE")}
+                                onClick={() => {
+                                    setChartViewMode("LINE");
+                                    setActiveChartCandle(null);
+                                }}
                             >
                                 Линия
                             </button>
@@ -366,7 +372,10 @@ export function AssetDetailsPage() {
                             <button
                                 type="button"
                                 className={chartViewMode === "CANDLES" ? "active" : ""}
-                                onClick={() => setChartViewMode("CANDLES")}
+                                onClick={() => {
+                                    setChartViewMode("CANDLES");
+                                    setActiveChartCandle(null);
+                                }}
                             >
                                 Свечи
                             </button>
@@ -401,23 +410,17 @@ export function AssetDetailsPage() {
 
                                 <div className="asset-line-chart-points">
                                     {lineChartDots.map((dot) => (
-                                        <div
+                                        <button
                                             key={dot.candle.timestamp}
+                                            type="button"
                                             className="asset-line-chart-point"
                                             style={{
                                                 left: `${dot.x}%`,
                                                 top: `${dot.y}%`
                                             }}
-                                        >
-                                            <div className="asset-chart-tooltip">
-                                                <strong>{formatDateTime(dot.candle.timestamp)}</strong>
-                                                <span>Open: {formatNumber(dot.candle.open)}</span>
-                                                <span>High: {formatNumber(dot.candle.high)}</span>
-                                                <span>Low: {formatNumber(dot.candle.low)}</span>
-                                                <span>Close: {formatNumber(dot.candle.close)}</span>
-                                                <em>{dot.candle.source}</em>
-                                            </div>
-                                        </div>
+                                            onClick={() => setActiveChartCandle(dot.candle)}
+                                            aria-label={`Показать свечу ${formatDateTime(dot.candle.timestamp)}`}
+                                        />
                                     ))}
                                 </div>
 
@@ -434,9 +437,17 @@ export function AssetDetailsPage() {
                                         candle={candle}
                                         minLow={chartBounds.minLow}
                                         maxHigh={chartBounds.maxHigh}
+                                        onSelect={setActiveChartCandle}
                                     />
                                 ))}
                             </div>
+                        )}
+
+                        {activeChartCandle && (
+                            <ChartTooltip
+                                candle={activeChartCandle}
+                                onClose={() => setActiveChartCandle(null)}
+                            />
                         )}
 
                         {isChartLoading && (
@@ -519,9 +530,10 @@ type CandleBarProps = {
     candle: Candle;
     minLow: number;
     maxHigh: number;
+    onSelect: (candle: Candle) => void;
 };
 
-function CandleBar({ candle, minLow, maxHigh }: CandleBarProps) {
+function CandleBar({ candle, minLow, maxHigh, onSelect }: CandleBarProps) {
     const totalRange = Math.max(maxHigh - minLow, 1);
     const candleTop = ((maxHigh - candle.high) / totalRange) * 100;
     const candleHeight = Math.max(((candle.high - candle.low) / totalRange) * 100, 4);
@@ -530,7 +542,12 @@ function CandleBar({ candle, minLow, maxHigh }: CandleBarProps) {
     const isPositive = candle.close >= candle.open;
 
     return (
-        <div className="asset-candle-bar">
+        <button
+            type="button"
+            className="asset-candle-bar"
+            onClick={() => onSelect(candle)}
+            aria-label={`Показать свечу ${formatDateTime(candle.timestamp)}`}
+        >
             <div
                 className="asset-candle-wick"
                 style={{
@@ -548,15 +565,28 @@ function CandleBar({ candle, minLow, maxHigh }: CandleBarProps) {
             />
 
             <span>{formatShortDate(candle.timestamp)}</span>
+        </button>
+    );
+}
 
-            <div className="asset-chart-tooltip asset-candle-tooltip">
-                <strong>{formatDateTime(candle.timestamp)}</strong>
-                <span>Open: {formatNumber(candle.open)}</span>
-                <span>High: {formatNumber(candle.high)}</span>
-                <span>Low: {formatNumber(candle.low)}</span>
-                <span>Close: {formatNumber(candle.close)}</span>
-                <em>{candle.source}</em>
-            </div>
+type ChartTooltipProps = {
+    candle: Candle;
+    onClose: () => void;
+};
+
+function ChartTooltip({ candle, onClose }: ChartTooltipProps) {
+    return (
+        <div className="asset-chart-fixed-tooltip">
+            <button type="button" onClick={onClose} aria-label="Закрыть подсказку">
+                ×
+            </button>
+
+            <strong>{formatDateTime(candle.timestamp)}</strong>
+            <span>Open: {formatNumber(candle.open)}</span>
+            <span>High: {formatNumber(candle.high)}</span>
+            <span>Low: {formatNumber(candle.low)}</span>
+            <span>Close: {formatNumber(candle.close)}</span>
+            <em>{candle.source}</em>
         </div>
     );
 }
