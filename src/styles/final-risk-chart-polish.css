@@ -1,0 +1,72 @@
+.risk-low-value {
+    color: #86efac !important;
+    text-shadow: 0 0 14px rgba(34, 197, 94, 0.28);
+}
+
+.risk-medium-value {
+    color: #fde68a !important;
+    text-shadow: 0 0 14px rgba(245, 158, 11, 0.24);
+}
+
+.risk-high-value {
+    color: #fb923c !important;
+    text-shadow: 0 0 14px rgba(249, 115, 22, 0.26);
+}
+
+.risk-critical-value {
+    color: #fca5a5 !important;
+    text-shadow: 0 0 14px rgba(239, 68, 68, 0.3);
+}
+
+.asset-line-chart svg {
+    overflow: visible;
+}
+
+.asset-line-chart-dot,
+.asset-line-chart-visual-dot {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.asset-line-chart.chart-up .asset-line-chart-area {
+    fill: url("#lineChartGradientUp") !important;
+}
+
+.asset-line-chart.chart-down .asset-line-chart-area {
+    fill: url("#lineChartGradientDown") !important;
+}
+
+.asset-line-chart.chart-up .asset-line-chart-line {
+    stroke: #22c55e !important;
+    filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.72));
+}
+
+.asset-line-chart.chart-down .asset-line-chart-line {
+    stroke: #ef4444 !important;
+    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.72));
+}
+
+.asset-line-chart.chart-up .asset-line-chart-dot,
+.asset-line-chart.chart-up .asset-line-chart-visual-dot {
+    fill: #22c55e !important;
+    stroke: #020617 !important;
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.95));
+}
+
+.asset-line-chart.chart-down .asset-line-chart-dot,
+.asset-line-chart.chart-down .asset-line-chart-visual-dot {
+    fill: #ef4444 !important;
+    stroke: #020617 !important;
+    stroke-width: 3px !important;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95));
+}
+
+@media (max-width: 900px) {
+    .asset-thin-row small.risk-low-value,
+    .asset-thin-row small.risk-medium-value,
+    .asset-thin-row small.risk-high-value,
+    .asset-thin-row small.risk-critical-value {
+        font-weight: 950;
+    }
+}

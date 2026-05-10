@@ -50,6 +50,7 @@ export async function getCandles(
 }
 
 export async function getAnalyticsSummary(ticker: string): Promise<AnalyticsSummary> {
+    const asset = getAsset(ticker);
     const price = await getMarketPrice(ticker);
     const candles = await getCandles(ticker, "MONTH");
 
@@ -60,25 +61,35 @@ export async function getAnalyticsSummary(ticker: string): Promise<AnalyticsSumm
     const priceChangePercent = firstClose === 0 ? 0 : (priceChange / firstClose) * 100;
     const averageVolume = average(candles.map((candle) => candle.volume));
     const volatilityPercent = calculateVolatilityPercent(closes);
+    const maxDrawdownPercent = calculateMaxDrawdownPercent(closes);
+    const downsideDaysPercent = calculateDownsideDaysPercent(closes);
 
-    const sourcePenalty = price.source === "DEMO" ? 16 : 0;
-    const cryptoPenalty = ticker.includes("USDT") ? 18 : 6;
-    const movementRisk = Math.abs(priceChangePercent) * 4.8;
-    const volatilityRisk = volatilityPercent * 18;
-    const drawdownRisk = priceChangePercent < 0 ? Math.abs(priceChangePercent) * 2.6 : 0;
-    const lowDataPenalty = candles.length < 20 ? 10 : 0;
+    const baseRisk = getBaseRisk(asset?.assetType ?? "UNKNOWN");
+    const volatilityRisk = clamp(volatilityPercent * 10, 0, 28);
+    const drawdownRisk = clamp(maxDrawdownPercent * 1.55, 0, 30);
+    const downsideRisk = clamp(downsideDaysPercent * 0.16, 0, 16);
+    const negativeTrendRisk = priceChangePercent < 0
+        ? clamp(Math.abs(priceChangePercent) * 1.75, 0, 24)
+        : 0;
+    const positiveTrendDiscount = priceChangePercent > 0
+        ? clamp(priceChangePercent * 1.05, 0, 18)
+        : 0;
+    const sourcePenalty = price.source === "DEMO" ? 6 : 0;
+    const lowDataPenalty = candles.length < 20 ? 5 : 0;
 
     const riskScore = clamp(
         Math.round(
-            cryptoPenalty +
-            sourcePenalty +
-            lowDataPenalty +
-            movementRisk +
+            baseRisk +
             volatilityRisk +
-            drawdownRisk
+            drawdownRisk +
+            downsideRisk +
+            negativeTrendRisk +
+            sourcePenalty +
+            lowDataPenalty -
+            positiveTrendDiscount
         ),
         3,
-        100
+        92
     );
 
     return {
@@ -205,7 +216,7 @@ async function getBinanceCandles(
 
         const data = await response.json() as Array<Array<number | string>>;
 
-        return data.map<Candle>((row) => ({
+        const candles = data.map<Candle>((row) => ({
             timestamp: new Date(Number(row[0])).toISOString(),
             open: Number(row[1]),
             high: Number(row[2]),
@@ -213,7 +224,20 @@ async function getBinanceCandles(
             close: Number(row[4]),
             volume: Number(row[5]),
             source: "BINANCE"
-        }));
+        })).filter((candle) => {
+            return (
+                Number.isFinite(candle.open) &&
+                Number.isFinite(candle.high) &&
+                Number.isFinite(candle.low) &&
+                Number.isFinite(candle.close)
+            );
+        });
+
+        if (candles.length === 0) {
+            throw new Error("Binance candles parsed empty");
+        }
+
+        return candles;
     } catch {
         return getDemoCandlesByPeriod(ticker, "DEMO", period);
     }
@@ -420,6 +444,26 @@ function firstFiniteNumber(
     return 0;
 }
 
+function getBaseRisk(assetType: string): number {
+    if (assetType === "CRYPTO") {
+        return 22;
+    }
+
+    if (assetType === "STOCK") {
+        return 14;
+    }
+
+    if (assetType === "ETF" || assetType === "INDEX") {
+        return 10;
+    }
+
+    if (assetType === "BOND" || assetType === "CURRENCY") {
+        return 8;
+    }
+
+    return 16;
+}
+
 function average(values: number[]): number {
     if (values.length === 0) {
         return 0;
@@ -446,10 +490,44 @@ function calculateVolatilityPercent(values: number[]): number {
     return average(changes.map((value) => Math.abs(value)));
 }
 
+function calculateMaxDrawdownPercent(values: number[]): number {
+    if (values.length < 2) {
+        return 0;
+    }
+
+    let peak = values[0];
+    let maxDrawdown = 0;
+
+    values.forEach((value) => {
+        peak = Math.max(peak, value);
+
+        if (peak > 0) {
+            const drawdown = ((peak - value) / peak) * 100;
+            maxDrawdown = Math.max(maxDrawdown, drawdown);
+        }
+    });
+
+    return maxDrawdown;
+}
+
+function calculateDownsideDaysPercent(values: number[]): number {
+    if (values.length < 2) {
+        return 0;
+    }
+
+    const changes = values.slice(1).map((value, index) => {
+        return value - values[index];
+    });
+
+    const downsideDays = changes.filter((value) => value < 0).length;
+
+    return (downsideDays / changes.length) * 100;
+}
+
 function toRiskLevel(score: number): RiskLevel {
-    if (score >= 80) return "CRITICAL";
-    if (score >= 60) return "HIGH";
-    if (score >= 35) return "MEDIUM";
+    if (score >= 75) return "CRITICAL";
+    if (score >= 55) return "HIGH";
+    if (score >= 32) return "MEDIUM";
 
     return "LOW";
 }

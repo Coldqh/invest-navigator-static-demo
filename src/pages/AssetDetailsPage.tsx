@@ -56,6 +56,11 @@ type StoredPortfolioTransaction = {
     createdAt: string;
 };
 
+type ChartBounds = {
+    minLow: number;
+    maxHigh: number;
+};
+
 const PORTFOLIO_STORAGE_KEY = "invest-navigator-portfolio-state";
 
 export function AssetDetailsPage() {
@@ -263,7 +268,7 @@ export function AssetDetailsPage() {
         return sortedCandles.slice(-30);
     }, [chartPeriod, sortedCandles]);
 
-    const chartBounds = useMemo(() => {
+    const candleBounds = useMemo<ChartBounds>(() => {
         if (visibleCandles.length === 0) {
             return {
                 minLow: 0,
@@ -274,6 +279,30 @@ export function AssetDetailsPage() {
         return {
             minLow: Math.min(...visibleCandles.map((candle) => candle.low)),
             maxHigh: Math.max(...visibleCandles.map((candle) => candle.high))
+        };
+    }, [visibleCandles]);
+
+    const lineBounds = useMemo<ChartBounds>(() => {
+        if (visibleCandles.length === 0) {
+            return {
+                minLow: 0,
+                maxHigh: 1
+            };
+        }
+
+        const closes = visibleCandles.map((candle) => candle.close);
+        const minClose = Math.min(...closes);
+        const maxClose = Math.max(...closes);
+        const averageClose = average(closes);
+        const naturalRange = maxClose - minClose;
+        const minimumRange = Math.max(averageClose * 0.035, 0.000001);
+        const finalRange = Math.max(naturalRange, minimumRange);
+        const padding = finalRange * 0.22;
+        const center = (minClose + maxClose) / 2;
+
+        return {
+            minLow: center - finalRange / 2 - padding,
+            maxHigh: center + finalRange / 2 + padding
         };
     }, [visibleCandles]);
 
@@ -290,9 +319,9 @@ export function AssetDetailsPage() {
             return [];
         }
 
-        const min = chartBounds.minLow;
-        const max = chartBounds.maxHigh;
-        const range = Math.max(max - min, 1);
+        const min = lineBounds.minLow;
+        const max = lineBounds.maxHigh;
+        const range = Math.max(max - min, 0.000001);
 
         return visibleCandles.map((candle, index) => {
             const x = visibleCandles.length === 1
@@ -307,7 +336,7 @@ export function AssetDetailsPage() {
                 y
             };
         });
-    }, [chartBounds.maxHigh, chartBounds.minLow, visibleCandles]);
+    }, [lineBounds.maxHigh, lineBounds.minLow, visibleCandles]);
 
     const lineChartPoints = useMemo(() => {
         return lineChartDots.map((dot) => `${dot.x},${dot.y}`).join(" ");
@@ -331,6 +360,7 @@ export function AssetDetailsPage() {
     const riskScore = analytics?.riskScore ?? 0;
     const chartColorClass = isChartPositive ? "chart-up" : "chart-down";
     const chartGradientId = isChartPositive ? "lineChartGradientUp" : "lineChartGradientDown";
+    const riskClassName = getRiskClassName(riskScore);
 
     const buyCurrency = normalizeCurrency(asset.currency);
     const buyQuantityNumber = parsePositiveNumber(buyQuantity);
@@ -453,6 +483,7 @@ export function AssetDetailsPage() {
                 <SummaryCard
                     label="Риск"
                     value={analytics ? `${analytics.riskScore}/100` : "—"}
+                    valueClassName={riskClassName}
                 />
 
                 <SummaryCard
@@ -544,12 +575,14 @@ export function AssetDetailsPage() {
                                 <svg viewBox="0 0 1000 300" preserveAspectRatio="none">
                                     <defs>
                                         <linearGradient id="lineChartGradientUp" x1="0" x2="0" y1="0" y2="1">
-                                            <stop offset="0%" stopColor="rgba(34, 197, 94, 0.5)" />
+                                            <stop offset="0%" stopColor="rgba(34, 197, 94, 0.54)" />
+                                            <stop offset="72%" stopColor="rgba(34, 197, 94, 0.18)" />
                                             <stop offset="100%" stopColor="rgba(34, 197, 94, 0.02)" />
                                         </linearGradient>
 
                                         <linearGradient id="lineChartGradientDown" x1="0" x2="0" y1="0" y2="1">
-                                            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.5)" />
+                                            <stop offset="0%" stopColor="rgba(239, 68, 68, 0.54)" />
+                                            <stop offset="72%" stopColor="rgba(239, 68, 68, 0.18)" />
                                             <stop offset="100%" stopColor="rgba(239, 68, 68, 0.02)" />
                                         </linearGradient>
                                     </defs>
@@ -566,20 +599,21 @@ export function AssetDetailsPage() {
                                     />
 
                                     {lineChartDots.map((dot) => (
-                                        <circle
+                                        <ellipse
                                             key={dot.candle.timestamp}
-                                            className="asset-line-chart-dot"
+                                            className="asset-line-chart-dot asset-line-chart-visual-dot"
                                             cx={dot.x}
                                             cy={dot.y}
-                                            r="7.6"
+                                            rx="15.5"
+                                            ry="10.6"
                                             onClick={() => setActiveChartCandle(dot.candle)}
                                         />
                                     ))}
                                 </svg>
 
                                 <div className="asset-line-chart-labels">
-                                    <span>{formatNumber(chartBounds.maxHigh)}</span>
-                                    <span>{formatNumber(chartBounds.minLow)}</span>
+                                    <span>{formatNumber(lineBounds.maxHigh)}</span>
+                                    <span>{formatNumber(lineBounds.minLow)}</span>
                                 </div>
                             </div>
                         ) : (
@@ -588,8 +622,8 @@ export function AssetDetailsPage() {
                                     <CandleBar
                                         key={candle.timestamp}
                                         candle={candle}
-                                        minLow={chartBounds.minLow}
-                                        maxHigh={chartBounds.maxHigh}
+                                        minLow={candleBounds.minLow}
+                                        maxHigh={candleBounds.maxHigh}
                                         onSelect={setActiveChartCandle}
                                     />
                                 ))}
@@ -622,7 +656,7 @@ export function AssetDetailsPage() {
 
                     <div className="asset-risk-score">
                         <div className="asset-risk-orb">
-                            <strong>{riskScore}</strong>
+                            <strong className={riskClassName}>{riskScore}</strong>
                             <span>из 100</span>
                         </div>
 
@@ -687,7 +721,7 @@ type CandleBarProps = {
 };
 
 function CandleBar({ candle, minLow, maxHigh, onSelect }: CandleBarProps) {
-    const totalRange = Math.max(maxHigh - minLow, 1);
+    const totalRange = Math.max(maxHigh - minLow, 0.000001);
     const candleTop = ((maxHigh - candle.high) / totalRange) * 100;
     const candleHeight = Math.max(((candle.high - candle.low) / totalRange) * 100, 4);
     const bodyTop = ((maxHigh - Math.max(candle.open, candle.close)) / totalRange) * 100;
@@ -798,6 +832,22 @@ function createEmptyStoredPortfolioState(): StoredPortfolioState {
     };
 }
 
+function getRiskClassName(score: number): string {
+    if (score >= 75) {
+        return "risk-critical-value";
+    }
+
+    if (score >= 55) {
+        return "risk-high-value";
+    }
+
+    if (score >= 32) {
+        return "risk-medium-value";
+    }
+
+    return "risk-low-value";
+}
+
 function normalizeCurrency(value: string): Currency {
     return value.toUpperCase() === "USD" ? "USD" : "RUB";
 }
@@ -836,6 +886,14 @@ function translateRiskLevel(riskLevel: string): string {
     if (riskLevel === "CRITICAL") return "Критический риск";
 
     return riskLevel;
+}
+
+function average(values: number[]): number {
+    if (values.length === 0) {
+        return 0;
+    }
+
+    return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
 function formatMoney(value: number, currency: string): string {

@@ -118,9 +118,27 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
             <i className={isPositive ? "positive-value" : "negative-value"}>
                 {analytics ? formatPercentWithSign(change) : "—"}
             </i>
-            <small>{analytics ? `${analytics.riskScore}/100` : "—"}</small>
+            <small className={analytics ? getRiskClassName(analytics.riskScore) : ""}>
+                {analytics ? `${analytics.riskScore}/100` : "—"}
+            </small>
         </Link>
     );
+}
+
+function getRiskClassName(score: number): string {
+    if (score >= 75) {
+        return "risk-critical-value";
+    }
+
+    if (score >= 55) {
+        return "risk-high-value";
+    }
+
+    if (score >= 32) {
+        return "risk-medium-value";
+    }
+
+    return "risk-low-value";
 }
 
 function formatAssetName(asset: Asset): string {
