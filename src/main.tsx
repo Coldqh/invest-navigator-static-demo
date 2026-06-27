@@ -1,4 +1,5 @@
-﻿import { StrictMode } from "react";
+﻿import { bootstrapOfficialDesignEnhancer } from './enhancers/officialDesignEnhancer';
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 import { App } from "./App";
@@ -21,6 +22,7 @@ import "./styles/final-risk-chart-polish.css";
 import "./styles/final-ai-report-data-polish.css";
 import "./styles/final-ai-report-yandex-fix.css";
 import "./styles/v2_official_terminal_patch.css";
+import './styles/v2_1_graphite_finish.css';
 
 const rootElement = document.getElementById("root");
 
@@ -35,3 +37,6 @@ createRoot(rootElement).render(
         </HashRouter>
     </StrictMode>
 );
+
+bootstrapOfficialDesignEnhancer();
+

@@ -1,0 +1,225 @@
+
+/* Invest Navigator v2.1 Graphite Finish */
+:root {
+    --inv-graphite-0: #070809;
+    --inv-graphite-1: #0c0d10;
+    --inv-graphite-2: #111317;
+    --inv-graphite-3: #171a20;
+    --inv-graphite-4: #1e232b;
+    --inv-border-soft: rgba(255,255,255,0.08);
+    --inv-border-strong: rgba(255,255,255,0.16);
+    --inv-text-main: #f1f3f6;
+    --inv-text-muted: #9aa2ad;
+    --inv-green: #2dd36f;
+    --inv-red: #eb5757;
+    --inv-yellow: #d2a94b;
+}
+
+/* kill blue leftovers */
+.summary-card,
+.dashboard-hero,
+.dashboard-card,
+.dashboard-header-card,
+.market-top-card,
+.top-market-card,
+.market-signal-card,
+.dashboard-section > .panel,
+.dashboard-section .panel,
+.compare-main-panel,
+.compare-page .panel,
+.asset-category-panel,
+.asset-details-hero,
+.asset-details-price-card,
+.asset-chart-panel,
+.asset-risk-panel,
+.empty-state,
+.error-block,
+.loading-state,
+.asset-thin-row,
+.compact-portfolio-account,
+.compact-portfolio-balance-card,
+.compact-holding-card,
+.compact-lot-card,
+.compact-portfolio-details,
+.compact-closed-trade-line,
+.ai-report-modal,
+.ai-report-panel,
+.ai-verdict-card,
+.ai-score-card,
+.ai-list-card,
+.data-panel,
+.data-card {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.003)),
+        linear-gradient(135deg, var(--inv-graphite-2), var(--inv-graphite-0)) !important;
+    border-color: var(--inv-border-soft) !important;
+}
+
+.empty-state,
+.loading-state,
+.error-block {
+    color: var(--inv-text-muted) !important;
+}
+
+/* dashboard metric cards */
+.dashboard-grid .panel,
+.dashboard-grid .summary-card,
+.dashboard-metrics .summary-card,
+.dashboard-mini-card,
+.market-breadth-card,
+.market-signal-card,
+.market-top-card,
+.dashboard-top-card,
+.dashboard-collapsible-panel {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.004)),
+      linear-gradient(135deg, #171a20, #0a0b0d) !important;
+}
+
+/* grey buttons that still stayed blue */
+.primary-button,
+button.primary-button,
+a.primary-button,
+.compact-holding-actions .primary-button,
+.compact-portfolio-extra-buttons .ghost-button,
+.compact-portfolio-toggle-buttons button,
+.details .primary-button,
+button,
+a.ghost-button,
+button.ghost-button {
+    background: linear-gradient(135deg, #2a2f38, #171b22) !important;
+    border-color: rgba(255,255,255,0.14) !important;
+    color: #f2f4f7 !important;
+    box-shadow: none !important;
+}
+
+/* keep semantic buttons */
+.color-button-green,
+.portfolio-page .compact-portfolio-toggle-buttons .buy-toggle-button,
+.portfolio-page .compact-portfolio-inline-panel .primary-button.buy-button,
+.transaction-buy-label,
+.transaction-buy-line strong {
+    background: linear-gradient(135deg, rgba(45,211,111,0.15), rgba(45,211,111,0.07)) !important;
+    color: var(--inv-green) !important;
+    border-color: rgba(45,211,111,0.35) !important;
+}
+
+.danger-sell-button,
+button.danger-sell-button,
+.transaction-sell-line strong {
+    background: linear-gradient(135deg, rgba(235,87,87,0.16), rgba(235,87,87,0.07)) !important;
+    color: var(--inv-red) !important;
+    border-color: rgba(235,87,87,0.35) !important;
+}
+
+/* logo */
+.brand > span,
+.app-brand > span,
+.header-brand > span {
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.005)),
+      url('/invest-navigator-logo-v2.png') center/80% 80% no-repeat,
+      linear-gradient(135deg, #1d2026, #0d0e11) !important;
+    border: 1px solid rgba(255,255,255,0.13) !important;
+    box-shadow: 0 14px 28px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+
+/* compare page backdrop */
+.compare-page .panel,
+.compare-score-strip,
+.compare-vs-card,
+.compare-metrics-row,
+.compare-value-cell {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.002)),
+      linear-gradient(135deg, #15181d, #090a0c) !important;
+}
+
+.compare-vs-circle,
+.vs-circle {
+    background: linear-gradient(135deg, #2a2f38, #14181f) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+    color: #ffffff !important;
+}
+
+/* chart colors */
+.asset-line-chart.chart-up .asset-line-chart-line {
+    stroke: var(--inv-green) !important;
+    filter: drop-shadow(0 0 4px rgba(45, 211, 111, 0.42)) !important;
+}
+.asset-line-chart.chart-down .asset-line-chart-line {
+    stroke: var(--inv-red) !important;
+    filter: drop-shadow(0 0 4px rgba(235, 87, 87, 0.40)) !important;
+}
+.asset-line-chart.chart-up .asset-line-chart-dot,
+.asset-line-chart.chart-up .asset-line-chart-visual-dot {
+    fill: var(--inv-green) !important;
+    stroke: #0a0b0d !important;
+}
+.asset-line-chart.chart-down .asset-line-chart-dot,
+.asset-line-chart.chart-down .asset-line-chart-visual-dot {
+    fill: var(--inv-red) !important;
+    stroke: #0a0b0d !important;
+}
+.asset-line-chart .asset-line-chart-dot,
+.asset-line-chart .asset-line-chart-visual-dot {
+    rx: 999px !important;
+    ry: 999px !important;
+    transform-box: fill-box;
+    transform-origin: center center;
+}
+.asset-line-chart.chart-up .asset-line-chart-area {
+    fill: url('#lineChartGradientUp') !important;
+    opacity: 0.24 !important;
+}
+.asset-line-chart.chart-down .asset-line-chart-area {
+    fill: url('#lineChartGradientDown') !important;
+    opacity: 0.24 !important;
+}
+.candle-up,
+.asset-candle-body.candle-up { background: linear-gradient(180deg, #6ee7a7, var(--inv-green)) !important; }
+.candle-down,
+.asset-candle-body.candle-down { background: linear-gradient(180deg, #ff8f8f, var(--inv-red)) !important; }
+
+/* risk colors */
+.risk-low-value { color: var(--inv-green) !important; }
+.risk-medium-value { color: var(--inv-yellow) !important; }
+.risk-high-value,
+.risk-critical-value { color: var(--inv-red) !important; }
+
+/* injected asset icons */
+.inv-asset-with-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0;
+}
+.inv-asset-icon {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.24);
+    border: 1px solid rgba(255,255,255,0.14);
+    background: #111;
+}
+.compact-holding-main .inv-asset-icon,
+.asset-thin-row .inv-asset-icon,
+a[href^='/assets/'] .inv-asset-icon,
+h1 .inv-asset-icon {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+}
+
+/* remove blue title bg on dashboard big heading if present */
+.dashboard-page > .panel:first-child,
+.dashboard-page .panel:first-of-type {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+      linear-gradient(135deg, #1a1d23, #0c0d10) !important;
+}
