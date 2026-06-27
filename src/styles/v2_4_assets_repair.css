@@ -1,0 +1,58 @@
+/* Invest Navigator v2.4 Assets Repair
+   Restores asset rows after broken injected JSX and keeps icons as normal image cells. */
+
+.asset-thin-row.asset-thin-row-with-icon {
+    display: grid !important;
+    grid-template-columns: 30px minmax(54px, 0.8fr) minmax(88px, 1.35fr) minmax(78px, 1fr) minmax(54px, 0.65fr) minmax(44px, 0.55fr) !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+}
+
+.asset-thin-row.asset-thin-row-with-icon > * {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.asset-row-icon {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    border-radius: 999px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3) !important;
+    background: #111318 !important;
+}
+
+.asset-thin-row.asset-thin-row-with-icon strong,
+.asset-thin-row.asset-thin-row-with-icon b {
+    color: #f2f4f7 !important;
+}
+
+.asset-thin-row.asset-thin-row-with-icon span {
+    color: #a1a9b5 !important;
+}
+
+.asset-thin-row.asset-thin-row-with-icon i,
+.asset-thin-row.asset-thin-row-with-icon small {
+    font-style: normal !important;
+    font-weight: 900 !important;
+    text-align: right !important;
+}
+
+@media (max-width: 900px) {
+    .asset-thin-row.asset-thin-row-with-icon {
+        grid-template-columns: 24px minmax(44px, 0.72fr) minmax(76px, 1.2fr) minmax(70px, 1fr) minmax(45px, 0.58fr) minmax(38px, 0.5fr) !important;
+        gap: 6px !important;
+    }
+
+    .asset-row-icon {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+    }
+}

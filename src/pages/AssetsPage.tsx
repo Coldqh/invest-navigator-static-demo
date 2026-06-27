@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
@@ -40,8 +40,8 @@ export function AssetsPage() {
     }, [assets]);
 
     const groups = useMemo(() => {
-        const stockAssets = assets.filter((asset) => asset.assetType === "STOCK");
         const cryptoAssets = assets.filter((asset) => asset.assetType === "CRYPTO");
+        const stockAssets = assets.filter((asset) => asset.assetType === "STOCK");
         const otherAssets = assets.filter((asset) => {
             return asset.assetType !== "STOCK" && asset.assetType !== "CRYPTO";
         });
@@ -49,24 +49,24 @@ export function AssetsPage() {
         return [
             {
                 id: "crypto",
-                title: "РљСЂРёРїС‚Р°",
+                title: "Крипта",
                 assets: cryptoAssets
             },
             {
                 id: "stocks",
-                title: "РђРєС†РёРё",
+                title: "Акции",
                 assets: stockAssets
             },
             {
                 id: "other",
-                title: "РџСЂРѕС‡РµРµ",
+                title: "Прочее",
                 assets: otherAssets
             }
         ].filter((group) => group.assets.length > 0);
     }, [assets]);
 
     if (isLoading) {
-        return <LoadingBlock text="Р—Р°РіСЂСѓР¶Р°РµРј Р°РєС‚РёРІС‹..." />;
+        return <LoadingBlock text="Загружаем активы..." />;
     }
 
     return (
@@ -107,27 +107,34 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
     const isPositive = change >= 0;
 
     return (
-        <Link to={`/assets/${asset.ticker}`} className="asset-thin-row">
+        <Link to={`/assets/${asset.ticker}`} className="asset-thin-row asset-thin-row-with-icon">
             <img
                 className="asset-row-icon"
                 src={`/asset-icons-real/${asset.ticker}.png`}
-                alt={asset.ticker}
+                alt=""
+                loading="lazy"
+                decoding="async"
                 onError={(event) => {
                     event.currentTarget.src = "/asset-icons-real/FALLBACK.png";
                 }}
             />
+
             <strong>{asset.ticker}</strong>
+
             <span>{formatAssetName(asset)}</span>
+
             <b>
                 {analytics
                     ? `${formatNumber(analytics.currentPrice)} ${asset.currency}`
-                    : `вЂ” ${asset.currency}`}
+                    : `— ${asset.currency}`}
             </b>
+
             <i className={isPositive ? "positive-value" : "negative-value"}>
-                {analytics ? formatPercentWithSign(change) : "вЂ”"}
+                {analytics ? formatPercentWithSign(change) : "—"}
             </i>
+
             <small className={analytics ? getRiskClassName(analytics.riskScore) : ""}>
-                {analytics ? `${analytics.riskScore}/100` : "вЂ”"}
+                {analytics ? `${analytics.riskScore}/100` : "—"}
             </small>
         </Link>
     );
