@@ -1,0 +1,199 @@
+/* Invest Navigator v2.2 Repair Patch
+   Fixes v2.1: restores asset rows, removes broken JS icon wrapping, restores chart behavior,
+   and forces remaining blue surfaces to graphite. */
+
+/* Hide leftovers from broken v2.1 DOM enhancer if page cache somehow keeps them */
+.inv-asset-with-icon > .inv-asset-icon {
+    display: none !important;
+}
+
+/* Real asset icon badges: no text wrapping, no layout rewrite */
+.asset-icon-badge {
+    --asset-icon-size: 30px;
+}
+
+a.asset-thin-row.asset-icon-badge {
+    position: relative !important;
+    padding-left: 52px !important;
+}
+
+a.asset-thin-row.asset-icon-badge::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    width: var(--asset-icon-size);
+    height: var(--asset-icon-size);
+    border-radius: 999px;
+    transform: translateY(-50%);
+    background-image: var(--asset-icon-url);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.32);
+}
+
+.compact-holding-main.asset-icon-badge,
+.asset-details-hero h1.asset-icon-badge,
+.asset-details-hero-main h1.asset-icon-badge {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.compact-holding-main.asset-icon-badge::before,
+.asset-details-hero h1.asset-icon-badge::before,
+.asset-details-hero-main h1.asset-icon-badge::before {
+    content: "";
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    border-radius: 999px;
+    background-image: var(--asset-icon-url);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.32);
+}
+
+/* Better logo */
+.brand > span,
+.app-brand > span,
+.header-brand > span {
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    background:
+        url('/invest-navigator-logo-v3.png') center / 82% 82% no-repeat,
+        linear-gradient(135deg, #1c1f25, #0c0d10) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    box-shadow: 0 12px 26px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+
+/* Restore charts/candles: remove v2.1 forced geometry and let previous working files control sizes */
+.asset-line-chart .asset-line-chart-dot,
+.asset-line-chart .asset-line-chart-visual-dot {
+    transform: none !important;
+    transform-box: initial !important;
+    rx: unset !important;
+    ry: unset !important;
+}
+
+.asset-line-chart svg {
+    overflow: hidden !important;
+}
+
+/* Do not override chart strip layout; keep old version behavior */
+.asset-candle-strip,
+.asset-candle-strip-large,
+.asset-candle-bar,
+.asset-line-chart,
+.asset-chart-body {
+    grid-template-columns: revert-layer;
+}
+
+/* Graphite palette for stubborn blue panels */
+.loading-block,
+.loading-state,
+.loading-card,
+[class*="Loading"],
+.empty-state,
+.error-block,
+.dashboard-page .panel,
+.dashboard-page .summary-card,
+.dashboard-page [class*="card"],
+.dashboard-page [class*="Card"],
+.dashboard-page [class*="tile"],
+.dashboard-page [class*="Tile"],
+.dashboard-page [class*="metric"],
+.dashboard-page [class*="Metric"],
+.dashboard-page [class*="signal"],
+.dashboard-page [class*="Signal"],
+.dashboard-page [class*="risk"],
+.dashboard-page [class*="Risk"],
+.dashboard-page [class*="volume"],
+.dashboard-page [class*="Volume"],
+.dashboard-page [class*="volatility"],
+.dashboard-page [class*="Volatility"],
+.dashboard-page [class*="growth"],
+.dashboard-page [class*="Growth"],
+.dashboard-page [class*="fall"],
+.dashboard-page [class*="Fall"],
+.compare-page .panel,
+.compare-vs-page .panel,
+.compare-vs-middle,
+.compare-vs-row,
+.compare-vs-select,
+.compare-vs-badge,
+.compare-vs-center > span,
+.market-top-card,
+.market-signal-card,
+.market-breadth-card,
+.dashboard-collapsible-panel,
+.dashboard-top-card {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+        linear-gradient(135deg, #171a20, #08090b) !important;
+    background-color: #111318 !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 14px 34px rgba(0,0,0,0.22) !important;
+}
+
+/* Specifically kill cyan/blue gradients often left by previous patches */
+.dashboard-page [style*="56, 189, 248"],
+.compare-page [style*="56, 189, 248"],
+.compare-vs-page [style*="56, 189, 248"] {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+        linear-gradient(135deg, #171a20, #08090b) !important;
+}
+
+/* Expand/collapse button and blue utility buttons -> graphite */
+.compact-holding-actions .primary-button,
+.compact-holding-actions button,
+.portfolio-page .compact-holding-actions .primary-button,
+.portfolio-page .compact-holding-actions button,
+.color-button-blue,
+.color-button-purple,
+button.color-button-blue,
+button.color-button-purple,
+a.color-button-blue,
+a.color-button-purple,
+.ghost-button,
+button.ghost-button,
+a.ghost-button {
+    background: linear-gradient(135deg, #2a2f38, #15181e) !important;
+    background-color: #1b1f26 !important;
+    color: #f2f4f7 !important;
+    border-color: rgba(255,255,255,0.14) !important;
+    box-shadow: none !important;
+}
+
+/* Keep semantic market colors */
+.positive-value,
+.metric-better,
+.transaction-buy-label {
+    color: #2dd36f !important;
+}
+
+.negative-value,
+.metric-worse,
+.transaction-sell-label {
+    color: #eb5757 !important;
+}
+
+.risk-low-value { color: #2dd36f !important; }
+.risk-medium-value { color: #d2a94b !important; }
+.risk-high-value,
+.risk-critical-value { color: #eb5757 !important; }
+
+/* Inputs/selects graphite */
+select,
+input,
+textarea {
+    background: #101216 !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    color: #f2f4f7 !important;
+}
