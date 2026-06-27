@@ -110,7 +110,7 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
         <Link to={`/assets/${asset.ticker}`} className="asset-thin-row">
             <img
                 className="asset-row-icon"
-                src={/asset-icons-real/.png}
+                src={`/asset-icons-real/${asset.ticker}.png`}
                 alt={asset.ticker}
                 onError={(event) => {
                     event.currentTarget.src = "/asset-icons-real/FALLBACK.png";
