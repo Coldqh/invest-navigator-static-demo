@@ -107,15 +107,15 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
     const isPositive = change >= 0;
 
     return (
-        <Link to={`/assets/${asset.ticker}`} className="asset-thin-row asset-thin-row-with-icon">
+        <Link to={`/assets/${asset.ticker}`} className="asset-thin-row asset-thin-row-fixed">
             <img
                 className="asset-row-icon"
-                src={`/asset-icons-real/${asset.ticker}.png`}
+                src={getAssetIconSrc(asset.ticker)}
                 alt=""
                 loading="lazy"
                 decoding="async"
                 onError={(event) => {
-                    event.currentTarget.src = "/asset-icons-real/FALLBACK.png";
+                    event.currentTarget.src = getAssetIconSrc("FALLBACK");
                 }}
             />
 
@@ -138,6 +138,13 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
             </small>
         </Link>
     );
+}
+
+function getAssetIconSrc(ticker: string): string {
+    const normalizedTicker = ticker.toUpperCase();
+    const iconTicker = normalizedTicker === "DOGE" ? "DOGEUSDT" : normalizedTicker;
+
+    return `${import.meta.env.BASE_URL}asset-icons-real/${iconTicker}.png`;
 }
 
 function getRiskClassName(score: number): string {

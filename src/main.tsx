@@ -21,8 +21,7 @@ import "./styles/final-risk-chart-polish.css";
 import "./styles/final-ai-report-data-polish.css";
 import "./styles/final-ai-report-yandex-fix.css";
 import "./styles/v2_official_terminal_patch.css";
-import './styles/v2_3_final_repair.css';
-import './styles/v2_4_assets_repair.css';
+import './styles/v2_5_assets_logo_final_fix.css';
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
@@ -36,5 +35,6 @@ createRoot(rootElement).render(
         </HashRouter>
     </StrictMode>
 );
+
 
 

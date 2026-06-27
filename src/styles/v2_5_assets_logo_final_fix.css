@@ -1,0 +1,148 @@
+/* Invest Navigator v2.5 Assets + Logo Final Fix */
+
+.inv-asset-icon,
+.inv-asset-with-icon {
+    display: none !important;
+}
+
+.asset-thin-row.asset-thin-row-fixed {
+    display: grid !important;
+    grid-template-columns: 30px minmax(54px, 0.8fr) minmax(88px, 1.35fr) minmax(78px, 1fr) minmax(54px, 0.65fr) minmax(44px, 0.55fr) !important;
+    align-items: center !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+}
+
+.asset-thin-row.asset-thin-row-fixed > * {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.asset-row-icon {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    border-radius: 999px !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.3) !important;
+    background: #111318 !important;
+}
+
+.asset-thin-row.asset-thin-row-fixed strong,
+.asset-thin-row.asset-thin-row-fixed b {
+    color: #f2f4f7 !important;
+}
+
+.asset-thin-row.asset-thin-row-fixed span {
+    color: #a1a9b5 !important;
+}
+
+.asset-thin-row.asset-thin-row-fixed i,
+.asset-thin-row.asset-thin-row-fixed small {
+    font-style: normal !important;
+    font-weight: 900 !important;
+    text-align: right !important;
+}
+
+.brand > span,
+.app-brand > span,
+.header-brand > span {
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    background:
+        url("../assets/invest-navigator-logo-v5.png") center / 82% 82% no-repeat,
+        linear-gradient(135deg, #1c1f25, #0c0d10) !important;
+    border: 1px solid rgba(255,255,255,0.14) !important;
+    box-shadow: 0 12px 26px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+
+.dashboard-page .dashboard-hero,
+.dashboard-page .dashboard-header,
+.dashboard-page .dashboard-title,
+.dashboard-page .dashboard-ai-card,
+.dashboard-page .ai-card,
+.dashboard-page .ai-panel,
+.dashboard-page article,
+.dashboard-page .panel,
+.dashboard-page .summary-card,
+.compare-page .panel,
+.compare-page [class*="compare" i],
+.compare-vs-page .panel,
+.compare-vs-middle,
+.compare-vs-row,
+.compare-vs-select,
+.loading-block,
+.loading-state,
+.loading-card,
+.empty-state,
+.error-block {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+        linear-gradient(135deg, #181c22, #090a0c) !important;
+    background-color: #12151a !important;
+    border-color: rgba(255,255,255,0.10) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 14px 34px rgba(0,0,0,0.22) !important;
+}
+
+.closed-trade-profit,
+.transaction-buy-line {
+    background:
+        linear-gradient(90deg, rgba(45,211,111,0.16), rgba(45,211,111,0.045) 22%, rgba(255,255,255,0.012) 100%),
+        linear-gradient(135deg, #151a1d, #090a0c) !important;
+    border-color: rgba(45,211,111,0.20) !important;
+}
+
+.closed-trade-loss,
+.transaction-sell-line {
+    background:
+        linear-gradient(90deg, rgba(235,87,87,0.17), rgba(235,87,87,0.045) 22%, rgba(255,255,255,0.012) 100%),
+        linear-gradient(135deg, #1a1515, #090a0c) !important;
+    border-color: rgba(235,87,87,0.22) !important;
+}
+
+.compact-closed-trade-line,
+.transaction-buy-line,
+.transaction-sell-line,
+.closed-trade-profit,
+.closed-trade-loss {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.closed-trade-profit::before,
+.transaction-buy-line::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    background: linear-gradient(180deg, #66f3a0, #2dd36f);
+    box-shadow: 0 0 18px rgba(45,211,111,0.42);
+}
+
+.closed-trade-loss::before,
+.transaction-sell-line::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    background: linear-gradient(180deg, #ff8f8f, #eb5757);
+    box-shadow: 0 0 18px rgba(235,87,87,0.42);
+}
+
+@media (max-width: 900px) {
+    .asset-thin-row.asset-thin-row-fixed {
+        grid-template-columns: 24px minmax(44px, 0.72fr) minmax(76px, 1.2fr) minmax(70px, 1fr) minmax(45px, 0.58fr) minmax(38px, 0.5fr) !important;
+        gap: 6px !important;
+    }
+
+    .asset-row-icon {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+    }
+}
