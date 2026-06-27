@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { LoadingBlock } from "../components/LoadingBlock";
 import { getAssets } from "../services/assetsService";
@@ -49,24 +49,24 @@ export function AssetsPage() {
         return [
             {
                 id: "crypto",
-                title: "Крипта",
+                title: "РљСЂРёРїС‚Р°",
                 assets: cryptoAssets
             },
             {
                 id: "stocks",
-                title: "Акции",
+                title: "РђРєС†РёРё",
                 assets: stockAssets
             },
             {
                 id: "other",
-                title: "Прочее",
+                title: "РџСЂРѕС‡РµРµ",
                 assets: otherAssets
             }
         ].filter((group) => group.assets.length > 0);
     }, [assets]);
 
     if (isLoading) {
-        return <LoadingBlock text="Загружаем активы..." />;
+        return <LoadingBlock text="Р—Р°РіСЂСѓР¶Р°РµРј Р°РєС‚РёРІС‹..." />;
     }
 
     return (
@@ -108,18 +108,26 @@ function AssetThinRow({ asset, analytics }: AssetThinRowProps) {
 
     return (
         <Link to={`/assets/${asset.ticker}`} className="asset-thin-row">
+            <img
+                className="asset-row-icon"
+                src={/asset-icons-real/.png}
+                alt={asset.ticker}
+                onError={(event) => {
+                    event.currentTarget.src = "/asset-icons-real/FALLBACK.png";
+                }}
+            />
             <strong>{asset.ticker}</strong>
             <span>{formatAssetName(asset)}</span>
             <b>
                 {analytics
                     ? `${formatNumber(analytics.currentPrice)} ${asset.currency}`
-                    : `— ${asset.currency}`}
+                    : `вЂ” ${asset.currency}`}
             </b>
             <i className={isPositive ? "positive-value" : "negative-value"}>
-                {analytics ? formatPercentWithSign(change) : "—"}
+                {analytics ? formatPercentWithSign(change) : "вЂ”"}
             </i>
             <small className={analytics ? getRiskClassName(analytics.riskScore) : ""}>
-                {analytics ? `${analytics.riskScore}/100` : "—"}
+                {analytics ? `${analytics.riskScore}/100` : "вЂ”"}
             </small>
         </Link>
     );
