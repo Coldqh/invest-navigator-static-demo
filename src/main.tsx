@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+﻿import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 import { App } from "./App";
@@ -20,6 +20,7 @@ import "./styles/final-trading-polish.css";
 import "./styles/final-risk-chart-polish.css";
 import "./styles/final-ai-report-data-polish.css";
 import "./styles/final-ai-report-yandex-fix.css";
+import "./styles/v2_official_terminal_patch.css";
 
 const rootElement = document.getElementById("root");
 

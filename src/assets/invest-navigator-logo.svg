@@ -1,0 +1,46 @@
+﻿<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="256" height="256" rx="46" fill="#0A0B0D"/>
+  <path d="M39 163L97 207V169L57 139L39 163Z" fill="url(#greenWing)"/>
+  <path d="M217 163L159 207V169L199 139L217 163Z" fill="url(#redWing)"/>
+  <path d="M98 169L128 192L158 169V207L128 229L98 207V169Z" fill="#111418"/>
+  <path d="M78 86H98V151H78V86Z" fill="url(#greenCandle1)"/>
+  <path d="M88 63V171" stroke="#33D17A" stroke-width="7" stroke-linecap="round"/>
+  <path d="M117 52H139V151H117V52Z" fill="url(#greenCandle2)"/>
+  <path d="M128 27V172" stroke="#36E083" stroke-width="7" stroke-linecap="round"/>
+  <path d="M158 74H178V151H158V74Z" fill="url(#redCandle1)"/>
+  <path d="M168 51V171" stroke="#F85A4D" stroke-width="7" stroke-linecap="round"/>
+  <path d="M192 94H212V151H192V94Z" fill="url(#redCandle2)"/>
+  <path d="M202 74V171" stroke="#FF6A5C" stroke-width="7" stroke-linecap="round"/>
+  <path d="M67 112H87V151H67V112Z" fill="#2FAE65" opacity="0.84"/>
+  <path d="M67 117H87" stroke="#45F08F" stroke-width="4"/>
+  <path d="M183 111H203V151H183V111Z" fill="#D93A34" opacity="0.88"/>
+  <path d="M183 116H203" stroke="#FF7A70" stroke-width="4"/>
+  <path d="M44 163L97 203" stroke="#45F08F" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+  <path d="M212 163L159 203" stroke="#FF6B60" stroke-width="5" stroke-linecap="round" opacity="0.75"/>
+  <defs>
+    <linearGradient id="greenWing" x1="39" y1="139" x2="112" y2="204" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1E7A4A"/>
+      <stop offset="1" stop-color="#32D47A"/>
+    </linearGradient>
+    <linearGradient id="redWing" x1="217" y1="139" x2="144" y2="204" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8E1E1E"/>
+      <stop offset="1" stop-color="#F04B43"/>
+    </linearGradient>
+    <linearGradient id="greenCandle1" x1="78" y1="86" x2="98" y2="151" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#51F09A"/>
+      <stop offset="1" stop-color="#168B4D"/>
+    </linearGradient>
+    <linearGradient id="greenCandle2" x1="117" y1="52" x2="139" y2="151" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6AFFAC"/>
+      <stop offset="1" stop-color="#20A95E"/>
+    </linearGradient>
+    <linearGradient id="redCandle1" x1="158" y1="74" x2="178" y2="151" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8175"/>
+      <stop offset="1" stop-color="#C12C2C"/>
+    </linearGradient>
+    <linearGradient id="redCandle2" x1="192" y1="94" x2="212" y2="151" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8E82"/>
+      <stop offset="1" stop-color="#D3332E"/>
+    </linearGradient>
+  </defs>
+</svg>

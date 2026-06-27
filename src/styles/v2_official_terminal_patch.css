@@ -1,0 +1,333 @@
+﻿/* Invest Navigator v2.0 — Official Terminal Design Patch
+   Style-only patch: darker official palette, sharper corners, logo mark, classic red/green charts.
+   Layout, scale, content structure and component positions are intentionally preserved. */
+
+:root {
+    --inv-bg-0: #050506;
+    --inv-bg-1: #08090b;
+    --inv-bg-2: #0d0f12;
+    --inv-bg-3: #12151a;
+    --inv-panel: rgba(14, 16, 20, 0.94);
+    --inv-panel-soft: rgba(18, 21, 26, 0.88);
+    --inv-border: rgba(150, 156, 166, 0.16);
+    --inv-border-strong: rgba(190, 197, 210, 0.22);
+    --inv-text: #f2f4f7;
+    --inv-muted: #8f98a6;
+    --inv-green: #1fca74;
+    --inv-green-soft: rgba(31, 202, 116, 0.16);
+    --inv-red: #ef4444;
+    --inv-red-soft: rgba(239, 68, 68, 0.16);
+}
+
+html,
+body,
+#root {
+    background: var(--inv-bg-0) !important;
+}
+
+body,
+.app-shell,
+.main-content,
+.sidebar {
+    color: var(--inv-text) !important;
+    background:
+        radial-gradient(circle at top left, rgba(80, 86, 98, 0.10), transparent 28rem),
+        linear-gradient(135deg, #050506 0%, #090a0c 46%, #050506 100%) !important;
+}
+
+/* Logo: replaces the old IN square without touching markup or layout. */
+.brand > span,
+.app-brand > span,
+.header-brand > span {
+    color: transparent !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    background:
+        linear-gradient(135deg, rgba(255,255,255,0.035), rgba(255,255,255,0.015)),
+        url("../assets/invest-navigator-logo.svg") center / 82% 82% no-repeat !important;
+    border: 1px solid rgba(170, 178, 190, 0.18) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 26px rgba(0,0,0,0.32) !important;
+}
+
+.brand strong,
+.app-brand strong,
+.header-brand strong {
+    color: #f4f6f8 !important;
+    letter-spacing: -0.03em;
+}
+
+.brand small,
+.app-brand small,
+.header-brand small {
+    color: var(--inv-muted) !important;
+}
+
+/* More official graphite panels. */
+.panel,
+.summary-card,
+.asset-details-hero,
+.asset-details-price-card,
+.asset-chart-panel,
+.asset-risk-panel,
+.asset-category-panel,
+.asset-thin-row,
+.compact-portfolio-account,
+.compact-portfolio-balance-card,
+.compact-portfolio-inline-panel,
+.compact-holding-card,
+.compact-lot-card,
+.compact-portfolio-details,
+.compact-closed-trade-line,
+.ai-report-panel,
+.ai-report-modal,
+.ai-verdict-card,
+.ai-score-card,
+.ai-list-card,
+.data-panel,
+.data-card,
+.empty-state,
+.error-block {
+    background:
+        radial-gradient(circle at top left, rgba(68, 75, 88, 0.10), transparent 18rem),
+        linear-gradient(135deg, rgba(17, 19, 23, 0.96), rgba(8, 9, 12, 0.96)) !important;
+    border-color: var(--inv-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 18px 48px rgba(0,0,0,0.22) !important;
+}
+
+/* Sharper, less toy-like geometry. */
+.panel,
+.asset-details-hero,
+.asset-details-price-card,
+.asset-chart-panel,
+.asset-risk-panel,
+.asset-category-panel,
+.compact-portfolio-account,
+.compact-holding-card,
+.compact-lot-card,
+.compact-portfolio-details,
+.ai-report-modal,
+.ai-report-panel,
+.summary-card,
+.asset-thin-row,
+.ai-verdict-card,
+.ai-score-card,
+.ai-list-card,
+.data-card,
+.data-panel {
+    border-radius: 12px !important;
+}
+
+button,
+a,
+select,
+input,
+textarea,
+.nav a,
+.asset-chart-segment,
+.asset-chart-segment button,
+.asset-details-badges span,
+.source-pill,
+.compact-portfolio-extra-buttons .ghost-button,
+.compact-portfolio-toggle-buttons button,
+.hero-actions .ghost-button,
+.hero-actions .primary-button {
+    border-radius: 7px !important;
+}
+
+/* Navigation: official dark tabs, no cyan toy glow. */
+.nav a,
+.asset-chart-segment button,
+.compare-vs-select,
+.asset-details-badges span,
+.source-pill {
+    color: #b8c0cc !important;
+    background: rgba(14, 16, 20, 0.76) !important;
+    border-color: rgba(165, 172, 184, 0.13) !important;
+    box-shadow: none !important;
+}
+
+.nav a.active,
+.asset-chart-segment button.active,
+.compare-vs-select:focus,
+.primary-button,
+button.primary-button,
+a.primary-button {
+    color: #07110c !important;
+    background: linear-gradient(135deg, #2ee58a, #16a965) !important;
+    border-color: rgba(46, 229, 138, 0.42) !important;
+    box-shadow: 0 10px 24px rgba(31, 202, 116, 0.14) !important;
+}
+
+.ghost-button,
+button.ghost-button,
+a.ghost-button,
+.secondary-button {
+    color: #d7dce5 !important;
+    background: linear-gradient(135deg, rgba(33, 37, 44, 0.92), rgba(13, 15, 19, 0.92)) !important;
+    border-color: rgba(165, 172, 184, 0.18) !important;
+    box-shadow: none !important;
+}
+
+.color-button-green,
+.portfolio-page .compact-portfolio-toggle-buttons button:first-child {
+    color: #06120c !important;
+    background: linear-gradient(135deg, #2ee58a, #169e61) !important;
+    border-color: rgba(46, 229, 138, 0.38) !important;
+}
+
+.color-button-purple,
+.color-button-blue,
+.portfolio-page .compact-portfolio-extra-buttons .ghost-button,
+.portfolio-page .compact-portfolio-toggle-buttons button:nth-child(2) {
+    color: #e7ebf2 !important;
+    background: linear-gradient(135deg, rgba(40, 44, 52, 0.94), rgba(14, 16, 20, 0.94)) !important;
+    border-color: rgba(170, 178, 190, 0.18) !important;
+}
+
+.danger-sell-button,
+.danger-button,
+.portfolio-page .danger-sell-button,
+.portfolio-page button.danger-sell-button,
+.portfolio-page .compact-lot-actions .danger-sell-button {
+    color: #ffe5e5 !important;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.72), rgba(92, 18, 18, 0.86)) !important;
+    border-color: rgba(239, 68, 68, 0.48) !important;
+    box-shadow: none !important;
+}
+
+/* Classic market colors. */
+.positive-value,
+.metric-better,
+.transaction-buy-label,
+.transaction-profit,
+.closed-trade-profit em,
+.risk-low-value {
+    color: var(--inv-green) !important;
+}
+
+.negative-value,
+.metric-worse,
+.transaction-sell-label,
+.transaction-loss,
+.closed-trade-loss em,
+.risk-critical-value {
+    color: var(--inv-red) !important;
+}
+
+.risk-medium-value { color: #d1aa47 !important; }
+.risk-high-value { color: #d97706 !important; }
+
+/* Line chart: green if period grew, red if fell. */
+.asset-line-chart.chart-up .asset-line-chart-line {
+    stroke: var(--inv-green) !important;
+    filter: drop-shadow(0 0 7px rgba(31, 202, 116, 0.38)) !important;
+}
+
+.asset-line-chart.chart-down .asset-line-chart-line {
+    stroke: var(--inv-red) !important;
+    filter: drop-shadow(0 0 7px rgba(239, 68, 68, 0.36)) !important;
+}
+
+.asset-line-chart.chart-up .asset-line-chart-area {
+    fill: url("#lineChartGradientUp") !important;
+}
+
+.asset-line-chart.chart-down .asset-line-chart-area {
+    fill: url("#lineChartGradientDown") !important;
+}
+
+.asset-line-chart.chart-up .asset-line-chart-dot,
+.asset-line-chart.chart-up .asset-line-chart-visual-dot {
+    fill: var(--inv-green) !important;
+    stroke: #050506 !important;
+    filter: drop-shadow(0 0 6px rgba(31, 202, 116, 0.55)) !important;
+}
+
+.asset-line-chart.chart-down .asset-line-chart-dot,
+.asset-line-chart.chart-down .asset-line-chart-visual-dot {
+    fill: var(--inv-red) !important;
+    stroke: #050506 !important;
+    filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.52)) !important;
+}
+
+/* Candles: classic red/green. */
+.candle-up,
+.asset-candle-body.candle-up {
+    background: linear-gradient(180deg, #61f3a4, var(--inv-green)) !important;
+    box-shadow: 0 0 12px rgba(31, 202, 116, 0.28) !important;
+}
+
+.candle-down,
+.asset-candle-body.candle-down {
+    background: linear-gradient(180deg, #ff8178, var(--inv-red)) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.26) !important;
+}
+
+.asset-candle-wick {
+    background: rgba(210, 215, 224, 0.58) !important;
+}
+
+.asset-line-chart,
+.asset-candle-strip-large,
+.asset-chart-body {
+    background:
+        linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+        rgba(7, 8, 11, 0.82) !important;
+    border-color: rgba(170, 178, 190, 0.13) !important;
+}
+
+/* Lists and tables: darker rows, thin official dividers. */
+.asset-thin-row,
+.compact-closed-trade-line,
+.compact-holding-line,
+.compact-lot-line {
+    border-color: rgba(170, 178, 190, 0.10) !important;
+}
+
+.asset-thin-row:hover,
+.nav a:hover,
+.ghost-button:hover,
+button:hover {
+    border-color: var(--inv-border-strong) !important;
+    background-color: rgba(30, 34, 40, 0.96) !important;
+}
+
+/* Modals: terminal-like official overlay. */
+.ai-report-modal-backdrop {
+    background: rgba(0, 0, 0, 0.74) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+.ai-provider-pill {
+    background: rgba(31, 202, 116, 0.12) !important;
+    color: var(--inv-green) !important;
+    border-color: rgba(31, 202, 116, 0.28) !important;
+}
+
+.ai-report-close-button {
+    border-radius: 7px !important;
+    background: linear-gradient(135deg, rgba(37, 42, 50, 0.96), rgba(10, 11, 14, 0.96)) !important;
+    border-color: rgba(170, 178, 190, 0.18) !important;
+}
+
+/* Make old blue/purple glow disappear where previous patch used it. */
+[class*="blue"],
+[class*="purple"] {
+    text-shadow: none;
+}
+
+@media (max-width: 900px) {
+    .panel,
+    .asset-details-hero,
+    .asset-details-price-card,
+    .asset-chart-panel,
+    .compact-portfolio-account,
+    .compact-holding-card,
+    .compact-lot-card,
+    .compact-portfolio-details,
+    .summary-card,
+    .asset-thin-row {
+        border-radius: 10px !important;
+    }
+}
