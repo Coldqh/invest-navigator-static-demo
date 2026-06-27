@@ -1,0 +1,222 @@
+/* Invest Navigator v2.6 Graphite Color Lock
+   Only color fixes. No layout, no charts, no asset rows. */
+
+:root {
+    --graphite-bg-0: #070809;
+    --graphite-bg-1: #0c0d10;
+    --graphite-bg-2: #12151a;
+    --graphite-bg-3: #181c22;
+    --graphite-bg-4: #242a33;
+    --graphite-border: rgba(255, 255, 255, 0.10);
+    --graphite-border-strong: rgba(255, 255, 255, 0.16);
+    --graphite-text: #f2f4f7;
+    --graphite-muted: #9aa3af;
+    --market-green: #2dd36f;
+    --market-red: #eb5757;
+}
+
+/* Loading / notification bars */
+.loading-block,
+.loading-state,
+.loading-card,
+.loading-panel,
+[class*="loading" i],
+.empty-state {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+        linear-gradient(135deg, var(--graphite-bg-3), var(--graphite-bg-0)) !important;
+    background-color: var(--graphite-bg-2) !important;
+    border-color: var(--graphite-border) !important;
+    color: var(--graphite-muted) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 14px 34px rgba(0,0,0,0.22) !important;
+}
+
+/* Dashboard title / Invest Navigator AI block */
+.dashboard-page .dashboard-hero,
+.dashboard-page .dashboard-header,
+.dashboard-page .dashboard-title,
+.dashboard-page .dashboard-ai-card,
+.dashboard-page .ai-card,
+.dashboard-page .ai-panel,
+.dashboard-page .hero-card,
+.dashboard-page .title-card,
+.dashboard-page > article:first-child,
+.dashboard-page > .panel:first-child,
+.dashboard-page section > article:first-child,
+.dashboard-page section > .panel:first-child {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.018), rgba(255,255,255,0.004)),
+        linear-gradient(135deg, #1b2028, #08090b) !important;
+    background-color: var(--graphite-bg-2) !important;
+    border-color: var(--graphite-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035), 0 14px 34px rgba(0,0,0,0.22) !important;
+}
+
+/* Dashboard metric blocks: рост, падение, риск, волатильность, объём, дорогой, дешёвый, разрыв */
+.dashboard-page .panel,
+.dashboard-page .summary-card,
+.dashboard-page [class*="metric" i],
+.dashboard-page [class*="card" i],
+.dashboard-page [class*="tile" i],
+.dashboard-page [class*="growth" i],
+.dashboard-page [class*="rise" i],
+.dashboard-page [class*="fall" i],
+.dashboard-page [class*="drop" i],
+.dashboard-page [class*="risk" i],
+.dashboard-page [class*="volatility" i],
+.dashboard-page [class*="volume" i],
+.dashboard-page [class*="expensive" i],
+.dashboard-page [class*="cheap" i],
+.dashboard-page [class*="spread" i],
+.dashboard-page [class*="gap" i],
+.dashboard-page [class*="market" i],
+.dashboard-page [class*="signal" i],
+.dashboard-page [class*="breadth" i],
+.dashboard-page details,
+.dashboard-page summary {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.003)),
+        linear-gradient(135deg, var(--graphite-bg-3), var(--graphite-bg-0)) !important;
+    background-color: var(--graphite-bg-2) !important;
+    border-color: var(--graphite-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.032), 0 12px 30px rgba(0,0,0,0.20) !important;
+}
+
+/* If older CSS used blue radial gradients on inner divs */
+.dashboard-page .panel > div,
+.dashboard-page .summary-card > div,
+.dashboard-page details > div,
+.dashboard-page article > div {
+    border-color: rgba(255,255,255,0.08) !important;
+}
+
+/* Portfolio expand/collapse buttons */
+.portfolio-page .compact-holding-actions .primary-button,
+.portfolio-page .compact-holding-actions button,
+.compact-holding-actions .primary-button,
+.compact-holding-actions button {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.006)),
+        linear-gradient(135deg, #2a2f38, #15181e) !important;
+    background-color: #1b1f26 !important;
+    color: var(--graphite-text) !important;
+    border-color: rgba(255,255,255,0.14) !important;
+    box-shadow: none !important;
+}
+
+/* Opened "Свернуть" state should be calm gray too */
+.portfolio-page .compact-holding-card:has(.compact-lot-list) .compact-holding-actions .primary-button,
+.portfolio-page .compact-holding-card:has(.compact-lot-list) .compact-holding-actions button {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.006)),
+        linear-gradient(135deg, #3a404a, #1b1f26) !important;
+    background-color: #252b34 !important;
+    color: #e5e7eb !important;
+    border-color: rgba(255,255,255,0.16) !important;
+}
+
+/* Compare page / VS block */
+.compare-page,
+.compare-vs-page,
+.compare-page .panel,
+.compare-vs-page .panel,
+.compare-vs-middle,
+.compare-vs-row,
+.compare-vs-select,
+.compare-vs-badge,
+.compare-vs-center,
+.compare-vs-center > span,
+.compare-score-strip,
+.compare-main-panel,
+.compare-value-cell,
+.compare-metric-cell,
+.compare-metrics-row,
+.vs-circle,
+.compare-vs-circle {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.016), rgba(255,255,255,0.003)),
+        linear-gradient(135deg, var(--graphite-bg-3), var(--graphite-bg-0)) !important;
+    background-color: var(--graphite-bg-2) !important;
+    border-color: var(--graphite-border) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.032), 0 12px 30px rgba(0,0,0,0.20) !important;
+    color: var(--graphite-text) !important;
+}
+
+.compare-vs-badge,
+.vs-circle,
+.compare-vs-circle {
+    background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.07), transparent 70%),
+        linear-gradient(135deg, #2b313a, #111318) !important;
+    border-color: var(--graphite-border-strong) !important;
+    color: #ffffff !important;
+}
+
+/* Generic blue utility buttons that leaked back */
+.color-button-blue,
+.color-button-purple,
+button.color-button-blue,
+button.color-button-purple,
+a.color-button-blue,
+a.color-button-purple,
+.ghost-button,
+button.ghost-button,
+a.ghost-button {
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.032), rgba(255,255,255,0.006)),
+        linear-gradient(135deg, #2a2f38, #15181e) !important;
+    background-color: #1b1f26 !important;
+    color: var(--graphite-text) !important;
+    border-color: rgba(255,255,255,0.14) !important;
+    box-shadow: none !important;
+}
+
+/* Keep semantic buy/sell/market text */
+.positive-value,
+.metric-better,
+.transaction-buy-label {
+    color: var(--market-green) !important;
+}
+
+.negative-value,
+.metric-worse,
+.transaction-sell-label {
+    color: var(--market-red) !important;
+}
+
+/* Keep gradients in portfolio history */
+.closed-trade-profit,
+.transaction-buy-line {
+    background:
+        linear-gradient(90deg, rgba(45,211,111,0.16), rgba(45,211,111,0.045) 22%, rgba(255,255,255,0.012) 100%),
+        linear-gradient(135deg, #151a1d, #090a0c) !important;
+    border-color: rgba(45,211,111,0.20) !important;
+}
+
+.closed-trade-loss,
+.transaction-sell-line {
+    background:
+        linear-gradient(90deg, rgba(235,87,87,0.17), rgba(235,87,87,0.045) 22%, rgba(255,255,255,0.012) 100%),
+        linear-gradient(135deg, #1a1515, #090a0c) !important;
+    border-color: rgba(235,87,87,0.22) !important;
+}
+
+.closed-trade-profit::before,
+.transaction-buy-line::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    background: linear-gradient(180deg, #66f3a0, var(--market-green));
+    box-shadow: 0 0 18px rgba(45,211,111,0.42);
+}
+
+.closed-trade-loss::before,
+.transaction-sell-line::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    background: linear-gradient(180deg, #ff8f8f, var(--market-red));
+    box-shadow: 0 0 18px rgba(235,87,87,0.42);
+}
